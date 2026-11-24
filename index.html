@@ -117,6 +117,10 @@ svg .val{fill:var(--text);font-weight:650}
 .info svg{display:block}
 .info:focus-visible{outline:2px solid var(--s2);outline-offset:2px}
 .hero .info{color:#7fc4ff}
+#tip.info{background:#246fb6;color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:13px;max-width:300px;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+#tip.info::after{content:"";position:absolute;left:var(--ax,20px);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent}
+#tip.info.up::after{top:100%;border-top:7px solid #246fb6}
+#tip.info.down::after{bottom:100%;border-bottom:7px solid #246fb6}
 #tip b{display:block;margin-bottom:2px;font-size:13px}
 .hl{margin:0;padding:0;list-style:none}
 .hl li{padding:9px 0 9px 14px;border-bottom:1px solid var(--line);position:relative}
@@ -135,7 +139,14 @@ td.trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 }
 :root[data-theme="dark"] .i-sun{display:block}
 :root[data-theme="dark"] .i-moon{display:none}
-.callout{border-left:3px solid var(--s2);background:var(--surface2);padding:10px 14px;font-size:13px;color:var(--text2);margin:0 0 16px;border-radius:var(--r)}
+.callout,.fcmsg:not(:empty),#emptyMsg.err{--ac:#3b82c4;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%233b82c4'/><rect x='9' y='9' width='2' height='6' rx='1' fill='%23fff'/><circle cx='10' cy='5.8' r='1.3' fill='%23fff'/></svg>");position:relative;background:var(--surface);color:var(--text);border:1px solid var(--ac);border-left:8px solid var(--ac);border-radius:8px;padding:12px 16px 12px 46px;font-size:14px;font-weight:400;line-height:1.45;margin:0 0 16px;text-align:left}
+.callout::before,.fcmsg:not(:empty)::before,#emptyMsg.err::before{content:"";position:absolute;left:14px;top:13px;width:20px;height:20px;background:var(--ic) center/contain no-repeat}
+.callout.near{--ac:#ffa41c;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M10 1.2l9.2 16.6H.8z' fill='%23ffa41c' stroke='%23ffa41c' stroke-width='1' stroke-linejoin='round'/><rect x='9' y='7' width='2' height='5.6' fill='%230f1111'/><circle cx='10' cy='14.8' r='1.1' fill='%230f1111'/></svg>")}
+.callout.over,.fcmsg:not(:empty),#emptyMsg.err{--ac:#cc0c39;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%23cc0c39'/><rect x='9' y='4.5' width='2' height='7' rx='1' fill='%23fff'/><circle cx='10' cy='14.6' r='1.3' fill='%23fff'/></svg>")}
+.callout.ok{--ac:#1d9a1d;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%231d9a1d'/><path d='M5.5 10.3l3 3 6-6.3' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>")}
+.fcmsg:empty{display:none}
+.fcmsg:not(:empty){margin:12px 0 0}
+#emptyMsg.err{margin:12px 0 0}
 .callout b{color:var(--text)}
 .card h3{font-size:14px;color:var(--text2);margin:24px 0 4px;font-weight:650}
 .heat td{text-align:center;padding:11px 6px;border:2px solid var(--surface);font-weight:600;font-size:12.5px}
@@ -146,7 +157,6 @@ td.trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .empty-icon{width:56px;height:56px;margin:0 auto 14px;display:grid;place-items:center;background:var(--orsoft);color:var(--s2);border-radius:var(--r)}
 .empty-card h2{font-size:21px;letter-spacing:-.02em}
 #emptyMsg{color:var(--text2);margin:6px 0 0}
-#emptyMsg.err{color:#d13438;font-weight:600}
 .drop{border:2px dashed var(--line);border-radius:var(--rc);padding:28px 20px;margin:20px 0 14px;display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--text2);transition:border-color .15s,background .15s}
 .drop.over{border-color:var(--s2);background:var(--orsoft)}
 .primary-lg{padding:10px 22px;font-size:15px;color:#0b0f14}
@@ -156,8 +166,6 @@ body.empty #dash,body.empty .ctl-data{display:none}
 body:not(.empty) #emptyState{display:none}
 .foot{max-width:1760px;margin:8px auto 0;padding:20px 24px 40px;border-top:1px solid var(--line);color:var(--text2);font-size:12.5px;line-height:1.6}
 .foot b{color:var(--text)}
-#ovNote.near{border-left-color:#ff9900}
-#ovNote.over{border-left-color:#c7511f;background:rgba(199,81,31,.10)}
 .foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 .foot a:hover{color:var(--s2)}
 .foot p{margin:0 0 6px}
@@ -173,10 +181,10 @@ td .pn.open{display:inline-block;max-width:320px}
 .pn.tog::before{content:"\25B8\00a0";color:var(--s2)}
 .pn.tog.open::before{content:"\25BE\00a0"}
 .pn.tog:focus-visible{outline:2px solid var(--s2);outline-offset:2px}
-.fcmsg{color:#b3261e;font-size:13px;min-height:18px;margin:8px 0 0}
 .fcchk{display:flex;gap:8px;align-items:center;margin:6px 0 12px;font-size:14px}
 .fcchk input{padding:0;height:auto;width:auto}
 .fcact{display:flex;gap:6px;justify-content:flex-end}
+.paidbtn{padding:3px 14px;font-size:13px;white-space:nowrap}
 .fcact button{padding:3px 14px;font-size:13px}
 #fcTable tr.editing td{background:var(--surface2)}
 #fcTable input{width:100%;box-sizing:border-box;height:30px;padding:3px 10px;font-size:13px;text-align:left}
@@ -545,6 +553,15 @@ const TIPS={
   'Forecast Peak':'The highest rolling value in the days ahead, counting your forecast items.',
   'Forecast Over Limit On':'The first day ahead when your forecast items would push you over the limit.',
   'Taxable Percentage':'The share of your order value treated as taxable income. Change it in the field above.',
+  'Day':'The day of the week. Each row summarizes every order you placed on that weekday.',
+  'Next Date':'The next calendar date that falls on this weekday. Today means it is that day now.',
+  'Rank':'Order of the weekdays from best to worst, based on average order value per day. Ranking leans toward your overall average when a weekday has little data, so one lucky day does not take the top spot. The top three are highlighted.',
+  'Expected Orders':'The average number of orders you have received on this weekday, counted per occurrence of that weekday in your history.',
+  'Expected Value':'The average order value for this weekday. The range in parentheses is one standard error either side of that average: a wider range means less certainty.',
+  'Product Type to Look For':'The category that brought in the most value on this weekday. Use it as a hint for what to look for on that day.',
+  'Evidence':'How many orders in that category arrived on this weekday, and what share of the weekday\'s total value they make up.',
+  'Confidence':'Medium means the category has at least 4 orders on that weekday and at least 30% of the weekday\'s value. Anything less is Low. It rises as your history grows.',
+  'Status':'Paid: you marked it paid. Past Due: the due date has passed, a payment is owed and it is not marked paid. Nothing Owed: the due date has passed but the estimated payment is $0. Next Due: the next payment coming up. Upcoming: a later payment.',
   'Next Payment Due':'The next quarterly due date that has not passed yet, adjusted for weekends and federal holidays.'
 };
 const INFO_SVG='<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor"/><rect x="7" y="7" width="2" height="5" rx="1" fill="#fff"/><circle cx="8" cy="4.5" r="1.1" fill="#fff"/></svg>';
@@ -688,6 +705,7 @@ function rebuild(){
 }
 function renderLoaded(){
   $('#chips').innerHTML=datasets.map((d,i)=>`<span class="chip"><span class="nm">${esc(d.name)}</span> <small>${d.orders.length} orders · ${fmtDate(d.min)} to ${fmtDate(d.max)}</small><button class="x" data-i="${i}" title="Remove this report" aria-label="Remove ${esc(d.name)}">×</button></span>`).join('');
+  $('#loadNote').className='callout'+(warnings.length?' near':'');
   $('#loadNote').textContent=[...(dupCount?[`${dupCount} order${dupCount===1?'':'s'} appeared in more than one report and ${dupCount===1?'was':'were'} merged (ship and cancel dates are kept from whichever report has them).`]:[]),...warnings].join(' ');
 }
 function showEmpty(msg){
@@ -759,7 +777,16 @@ try{const sv=localStorage.getItem('vine-theme');if(sv)document.documentElement.d
 const tip=$('#tip');
 document.querySelectorAll('.info:empty').forEach(e=>{e.innerHTML=INFO_SVG;});
 let infoEl=null;
-function openInfo(el){infoEl=el;const r=el.getBoundingClientRect();showTip(esc(TIPS[el.dataset.i]||''),{clientX:r.left,clientY:r.bottom-6});}
+function openInfo(el){
+  infoEl=el;
+  tip.className='info';tip.textContent=TIPS[el.dataset.i]||'';tip.style.display='block';
+  const r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,cx=r.left+r.width/2;
+  let x=Math.max(8,Math.min(innerWidth-w-8,cx-w/2)),y=r.top-h-10,dir='up';
+  if(y<8){y=r.bottom+10;dir='down';}
+  tip.classList.add(dir);
+  tip.style.left=x+'px';tip.style.top=y+'px';
+  tip.style.setProperty('--ax',Math.max(8,Math.min(w-20,cx-x-6))+'px');
+}
 function closeInfo(){infoEl=null;hideTip();}
 document.addEventListener('mouseover',e=>{const i=e.target.closest&&e.target.closest('.info');if(i&&i!==infoEl)openInfo(i);});
 document.addEventListener('mouseout',e=>{const i=e.target.closest&&e.target.closest('.info');if(i&&!(e.relatedTarget&&i.contains(e.relatedTarget))&&document.activeElement!==i)closeInfo();});
@@ -767,7 +794,7 @@ document.addEventListener('focusin',e=>{const i=e.target.closest&&e.target.close
 document.addEventListener('focusout',e=>{const i=e.target.closest&&e.target.closest('.info');if(i)closeInfo();});
 document.addEventListener('click',e=>{const i=e.target.closest&&e.target.closest('.info');if(i){e.preventDefault();e.stopPropagation();openInfo(i);}else if(infoEl)closeInfo();},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&infoEl)closeInfo();if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('info')){e.preventDefault();openInfo(e.target);}});
-function showTip(html,ev){tip.innerHTML=html;tip.style.display='block';
+function showTip(html,ev){tip.className='';tip.innerHTML=html;tip.style.display='block';
   const w=tip.offsetWidth,h=tip.offsetHeight;
   let x=ev.clientX+14,y=ev.clientY+14;
   if(x+w>innerWidth-8)x=ev.clientX-w-14; if(y+h>innerHeight-8)y=ev.clientY-h-14;
@@ -898,7 +925,7 @@ function insights(active,days){
   const cats=[...cw.values()].sort((a,b)=>b.tot-a.tot);
   const bestW=c=>{let b=0,bv=-1;for(let w=0;w<7;w++){const v=occ[w]?c.byW[w]/occ[w]:0;if(v>bv){bv=v;b=w;}}return b;};
   const conf=(n,share)=>(n>=4&&share>=.3)?'<span class="badge ok">Medium</span>':'<span class="badge low">Low</span>';
-  $('#catTable').innerHTML='<tr>'+sth('Category','str')+sth('Orders')+sth('Total Value')+sth('Avg / Item')+sth('% of Value')+sth('Best Day')+sth('Evidence','num',true)+sth('Confidence')+'</tr>'
+  $('#catTable').innerHTML='<tr>'+sth('Category','str')+sth('Orders')+sth('Total Value')+sth('Avg / Item')+sth('% of Value')+sth('Best Day')+sth('Evidence'+info('Evidence'),'num',true)+sth('Confidence'+info('Confidence'))+'</tr>'
     +cats.map(c=>{const bw=bestW(c),share=c.tot?c.byW[bw]/c.tot:0,med=(c.nW[bw]>=4&&share>=.3)?1:0;
       return `<tr><td>${esc(c.c)}</td><td>${c.n}</td><td data-v="${c.tot}">${money(c.tot)}</td><td data-v="${c.tot/c.n}">${money(c.tot/c.n)}</td><td data-v="${c.tot/totV}">${pct(c.tot/totV)}</td><td data-v="${bw}"><b>${FULL[bw]}</b></td><td class="name" data-v="${share}">${c.nW[bw]} of ${c.n} order${c.n===1?'':'s'} · ${pct(share)} of its value</td><td data-v="${med}">${conf(c.nW[bw],share)}</td></tr>`}).join('');
   const maxCell=Math.max(...cats.flatMap(c=>c.byW),1);
@@ -913,7 +940,7 @@ function insights(active,days){
   const nw=new Date(),todayMs=Date.UTC(nw.getFullYear(),nw.getMonth(),nw.getDate());
   const nextDate=w=>{const d=(w-wd(todayMs)+7)%7,t=todayMs+d*DAY,x=new Date(t);return d===0?'Today':`${DOW[w]} ${MON[x.getUTCMonth()]} ${x.getUTCDate()}`;};
   const pool=cats.filter(c=>c.c!=='Other').length?cats.filter(c=>c.c!=='Other'):cats;
-  $('#planTable').innerHTML='<tr>'+sth('Day','numa')+sth('Next Date','numa')+sth('Rank','numa')+sth('Expected Orders')+sth('Expected Value')+sth('Product Type to Look For','str',true)+sth('Evidence','num',true)+sth('Confidence')+'</tr>'
+  $('#planTable').innerHTML='<tr>'+sth('Day'+info('Day'),'numa')+sth('Next Date'+info('Next Date'),'numa')+sth('Rank'+info('Rank'),'numa')+sth('Expected Orders'+info('Expected Orders'))+sth('Expected Value'+info('Expected Value'))+sth('Product Type to Look For'+info('Product Type to Look For'),'str',true)+sth('Evidence'+info('Evidence'),'num',true)+sth('Confidence'+info('Confidence'))+'</tr>'
     +W.map(x=>{let best=null,bv=0;pool.forEach(c=>{if(c.byW[x.w]>bv){bv=c.byW[x.w];best=c;}});
       const share=best?bv/(x.total||1):0,n=best?best.nW[x.w]:0,r=rk(x.w),ahead=(x.w-wd(todayMs)+7)%7,med=(best&&n>=4&&share>=.3)?1:0;
       return `<tr class="${r<=3?'top3':''}"><td data-v="${x.w}"><b>${FULL[x.w]}</b></td><td data-v="${ahead}">${nextDate(x.w)}</td><td data-v="${r}"><span class="badge${r<=3?' ok':' low'}">#${r}</span></td><td>${x.ord.toFixed(1)}</td><td data-v="${x.mean}">${money0(x.mean)} <span style="color:var(--muted)">(${money0(x.lo)}-${money0(x.hi)})</span></td><td class="name">${best?esc(best.c):'N/A'}</td><td class="name" data-v="${share}">${best?`${n} order${n===1?'':'s'} · ${pct(share)} of the day's value`:'No data'}</td><td data-v="${med}">${best?conf(n,share):'N/A'}</td></tr>`}).join('');
@@ -986,7 +1013,7 @@ function renderLimit(){
   };
   if(L.empty){
     set([[`Rolling ${w}-Day Total`,'N/A',L.shippedOnly?'no shipped orders on or before the as-of date':'no orders on or before the as-of date']],L.shippedOnly?'No shipped orders are dated on or before the as-of date, so there is nothing to total yet.':'No orders are dated on or before the as-of date, so there is nothing to total yet.');
-    $('#limTable').innerHTML='';$('#limLegend').innerHTML='';return;
+    $('#limNote').className='callout';$('#limTable').innerHTML='';$('#limLegend').innerHTML='';return;
   }
   const asOf=fmtDate(refMs),n=L.nHist,ongoing=L.periods.find(p=>p.ongoing);
   const tiles=[[`Rolling ${w}-Day Total`,money(L.cur),`as of ${asOf}`+(L.shippedOnly?', shipped items only':'')]];
@@ -1012,6 +1039,7 @@ function renderLimit(){
       +(L.periods.length?`You were over the limit ${L.periods.length} time${L.periods.length===1?'':'s'} before; the most recent period started ${fmtDate(L.pts[L.periods[L.periods.length-1].s].t)}.`:'You have not gone over the limit in the loaded data.');
   }
   set(tiles,note);
+  $('#limNote').className='callout'+(ongoing?' over':(L.has?' ok':''));
   $('#limTable').innerHTML=L.has?(L.periods.length
     ?'<tr>'+sth('Exceeded On','numa')+sth('Peak Total')+sth('Peak Date','numa')+sth('Back Under On','numa')+sth('Days Over')+sth('Status','str')+'</tr>'
       +L.periods.map(p=>{const back=p.back!=null?L.pts[p.back].t:null;
@@ -1275,7 +1303,7 @@ function renderVolume(){
       +(V.periods.length?`You were over the limit ${V.periods.length} time${V.periods.length===1?'':'s'} before; the most recent period started ${fmtDate(pts[V.periods[V.periods.length-1].s].t)}.`:'You have not gone over the limit in the loaded data.');
   }
   set(tiles,note);
-  $('#ovNote').className='callout'+(over?' over':near?' near':'');
+  $('#ovNote').className='callout'+(over?' over':near?' near':(V.has?' ok':''));
   $('#ovTable').innerHTML=V.has?(V.periods.length
     ?'<tr>'+sth('Exceeded On','numa')+sth('Peak Count')+sth('Peak Date','numa')+sth('Back Under On','numa')+sth('Days Over')+sth('Status','str')+'</tr>'
       +V.periods.map(p=>{const back=p.back!=null?pts[p.back].t:null;
@@ -1381,28 +1409,42 @@ function computeTax(){
   const totVal=sum(defs.map(d=>d.val)),today=new Date(),todayMs=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
   return{fcN:fcY.length,fcVal:sum(fcY.map(o=>o.etv)),years,y,rate,defs,cum,totVal,totTax:totVal*rate,todayMs,n:inYear.length,lastOd:inYear.length?inYear[inYear.length-1].od:null};
 }
+let taxPaid={};
+try{const s=JSON.parse(localStorage.getItem('vine-taxpaid')||'null');if(s&&typeof s==='object'&&!Array.isArray(s))Object.keys(s).forEach(k=>{if(typeof s[k]==='number')taxPaid[k]=s[k];});}catch(e){}
+function saveTaxPaid(){try{localStorage.setItem('vine-taxpaid',JSON.stringify(taxPaid));}catch(e){}}
 function renderTax(){
   const T=taxState=computeTax();
   if(T.empty){$('#taxTiles').innerHTML='';$('#taxTable').innerHTML='';$('#taxLegend').innerHTML='';$('#taxNote').innerHTML='No dated orders to calculate.';return;}
   const pr=(T.rate*100).toLocaleString('en-US',{maximumFractionDigits:2});
-  const next=T.defs.find(d=>d.dueA>=T.todayMs);
+  T.defs.forEach(d=>{d.key=T.y+'-'+d.q;d.paid=taxPaid[d.key]!=null;});
+  const next=T.defs.find(d=>!d.paid&&d.dueA>=T.todayMs);
+  const paidList=T.defs.filter(d=>d.paid),paidSum=sum(paidList.map(d=>d.tax));
   const tiles=[
     [`${T.y} Order Value`,money(T.totVal),`${T.n} active orders`],
     ['Taxable Percentage',pr+'%','applied to order value'],
     [`Estimated ${T.y} Tax`,money(T.totTax),'sum of the four payments'],
-    ['Next Payment Due',next?fmtDate(next.dueA):'None Left',next?`${next.q}: ${money(next.tax)}`:`all ${T.y} due dates have passed`],
+    ['Next Payment Due',next?fmtDate(next.dueA):'None Left',next?`${next.q}: ${money(next.tax)}`:(paidList.length===T.defs.length?`all ${T.y} payments are marked paid`:`no unpaid due dates are coming up`)],
+    ['Paid So Far',money(paidSum),`${paidList.length} of 4 payments marked paid`],
+    ['Still To Pay',money(Math.max(0,T.totTax-paidSum)),'estimated, from payments not marked paid'],
     ['Average Per Quarter',money(T.totTax/4),'if paid evenly']];
   $('#taxTiles').innerHTML=tiles.map(k=>`<div class="pcard"><div class="l">${k[0]}${info(k[0])}</div><div class="v" style="font-size:24px">${k[1]}</div><div class="m">${k[2]}</div></div>`).join('');
   const q1=T.defs[0];
   $('#taxNote').innerHTML=`<b>${T.y} estimate.</b> At ${pr}%, your order value of ${money(T.totVal)} produces about <b>${money(T.totTax)}</b> in estimated tax. The first payment, for January through March, is <b>${money(q1.tax)}</b> due <b>${fmtDate(q1.dueA)}</b>`+(q1.dueA!==q1.due?` (April 15 falls on a weekend or holiday, so the deadline moves to the next business day)`:` (April 15)`)+'.';
   if(T.fcN)$('#taxNote').innerHTML+=` This includes ${T.fcN} forecast ${T.fcN===1?'item':'items'} worth ${money(T.fcVal)}.`;
-  const status=d=>d.dueA<T.todayMs?'<span class="badge">Past Due Date</span>':(d===next?'<span class="badge warn">Next Due</span>':'Upcoming');
-  T.defs.forEach(d=>{d.st=d.dueA<T.todayMs?0:(d===next?1:2);});
-  $('#taxTable').innerHTML='<tr>'+sth('Quarter','str',true)+sth('Income Period'+info('income'),'num',true)+sth('Orders')+sth('Order Value')+sth('Estimated Payment')+sth('Due Date','numa')+sth('Status','num')+'</tr>'
-    +T.defs.map(d=>`<tr><td data-v="${d.q}">${d.q}</td><td data-v="${d.s}" style="text-align:left">${d.period}</td><td>${d.n}</td><td data-v="${d.val}">${money(d.val)}</td><td data-v="${d.tax}"><b>${money(d.tax)}</b></td><td data-v="${d.dueA}">${fmtDate(d.dueA)}${d.dueA!==d.due?` <span style="color:var(--muted)">(statutory ${fmtShort(d.due)})</span>`:''}</td><td data-v="${d.st}">${status(d)}</td></tr>`).join('')
-    +`<tr class="tot"><td>Total</td><td>Full Year</td><td>${T.n}</td><td>${money(T.totVal)}</td><td>${money(T.totTax)}</td><td></td><td></td></tr>`;
+  const paidPill='<span class="stat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="currentColor"/><path d="M5 9.2l2.7 2.7L13 6.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Paid</span>';
+  const status=d=>d.paid?paidPill:(d.dueA<T.todayMs?(d.tax>0?'<span class="badge bad">Past Due</span>':'<span class="badge">Nothing Owed</span>'):(d===next?'<span class="badge warn">Next Due</span>':'Upcoming'));
+  T.defs.forEach(d=>{d.st=d.paid?4:(d.dueA<T.todayMs?0:(d===next?1:2));});
+  $('#taxTable').innerHTML='<tr>'+sth('Quarter','str',true)+sth('Income Period'+info('income'),'num',true)+sth('Orders')+sth('Order Value')+sth('Estimated Payment')+sth('Due Date','numa')+sth('Status'+info('Status'),'num')+'<th>Paid</th></tr>'
+    +T.defs.map(d=>`<tr><td data-v="${d.q}">${d.q}</td><td data-v="${d.s}" style="text-align:left">${d.period}</td><td>${d.n}</td><td data-v="${d.val}">${money(d.val)}</td><td data-v="${d.tax}"><b>${money(d.tax)}</b></td><td data-v="${d.dueA}">${fmtDate(d.dueA)}${d.dueA!==d.due?` <span style="color:var(--muted)">(statutory ${fmtShort(d.due)})</span>`:''}</td><td data-v="${d.st}">${status(d)}</td><td><button class="paidbtn" data-key="${d.key}" aria-pressed="${d.paid}" title="${d.paid?'Paid on '+fmtDate(taxPaid[d.key])+'. Click to undo.':'Mark this payment as paid'}">${d.paid?'Undo':'Mark Paid'}</button></td></tr>`).join('')
+    +`<tr class="tot"><td>Total</td><td>Full Year</td><td>${T.n}</td><td>${money(T.totVal)}</td><td>${money(T.totTax)}</td><td></td><td></td><td></td></tr>`;
   $('#taxLegend').innerHTML=`<span><i style="border-color:var(--s1)"></i>Cumulative Estimated Tax</span><span><i style="border-color:var(--s2);border-top-width:4px"></i>April 15 Due Date</span><span><i style="border-color:var(--text2);border-top-style:dashed"></i>Other Due Dates</span><span><i class="sw" style="background:var(--s1);opacity:.1"></i>Alternating Income Periods</span>`;
 }
+$('#taxTable').addEventListener('click',e=>{
+  const b=e.target.closest('button.paidbtn');if(!b)return;
+  const k=b.dataset.key;
+  if(taxPaid[k]!=null)delete taxPaid[k];else taxPaid[k]=todayMs();
+  saveTaxPaid();renderTax();balanceGrids();
+});
 function taxChart(){
   const host=$('#chTax'),T=taxState;
   if(!T||T.empty){host.innerHTML='';return;}
