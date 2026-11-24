@@ -238,7 +238,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
 .loaded .lbl{font-size:13px;color:var(--text2);font-weight:650}
 #loadNote:empty{display:none}
 #loadNote{margin-top:10px}
-#limVal{width:170px}#limWin{width:110px}
+#limVal{width:170px}#limWin{width:110px}#limWarn{width:110px}
 .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--text2);margin:0 0 8px;align-items:center}
 .legend i{display:inline-block;width:16px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
 .legend i.sw{height:10px;width:14px;border:0}
@@ -327,6 +327,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
       <label>Taxable Value Limit ($)<input id="limVal" type="number" min="0" step="100" placeholder="For example 2000"></label>
       <label><span>Window (Days)<span class="info" role="button" tabindex="0" data-i="window" aria-label="More information"></span></span><input id="limWin" type="number" min="1" max="365" step="1" value="30"></label>
       <label><span>Items Counted<span class="info" role="button" tabindex="0" data-i="items" aria-label="More information"></span></span><select id="limShip"><option value="all">All Items</option><option value="shipped">Shipped Items Only</option></select></label>
+      <label><span>Warn At (% Of Limit)<span class="info" role="button" tabindex="0" data-i="limwarn" aria-label="More information"></span></span><input id="limWarn" type="number" min="1" max="100" step="1" value="80"></label>
       <button id="limClear">Clear Limit</button>
     </div>
     <div class="callout" id="limNote"></div>
@@ -542,6 +543,7 @@ const TIPS={
   count:'The as-of date for the 30, 60, 90 and 180 day totals and for both limit trackers. Today uses the current date. Latest Order uses the date of your newest order.',
   window:'The number of days counted in each rolling total.',
   items:'All Items counts every order. Shipped Items Only counts only items that have a ship date. Forecast items count in Shipped Items Only only if they have a ship date estimate.',
+  limwarn:'Shows a warning once your rolling taxable value reaches this percent of your limit. A dotted line on the chart marks the warning level.',
   warn:'Shows a warning once your rolling order count reaches this percent of your limit.',
   taxpct:'The share of your order value treated as taxable income. The estimated tax is order value multiplied by this percentage.',
   income:'Each payment covers a different income period: Jan 1 to Mar 31, Apr 1 to May 31, Jun 1 to Aug 31 and Sep 1 to Dec 31. A due date moves to the next business day when it falls on a weekend or federal holiday.',
@@ -970,11 +972,11 @@ const fmtShort=ms=>{const d=new Date(ms);return `${d.getUTCMonth()+1}/${d.getUTC
 function computeLimit(active){
   const lim=parseFloat($('#limVal').value);
   const w=Math.max(1,Math.min(365,Math.round(parseFloat($('#limWin').value)||30)));
-  const has=!isNaN(lim)&&lim>0;
+  const has=!isNaN(lim)&&lim>0,warnPct=Math.max(1,Math.min(100,parseFloat($('#limWarn').value)||80));
   const shippedOnly=$('#limShip').value==='shipped';
   const fcs=forecastOrders(),upto=active.concat(fcs).filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
   const fut=fcs.filter(o=>o.od>refMs&&(!shippedOnly||o.sd!=null));
-  if(!used.length)return{has,lim,w,shippedOnly,empty:true,pts:[],periods:[],nHist:0};
+  if(!used.length)return{has,lim,w,warnPct,shippedOnly,empty:true,pts:[],periods:[],nHist:0};
   const start=Math.min(...used.map(o=>o.od)),n=Math.round((refMs-start)/DAY)+1;
   const fk=fut.map(o=>Math.round((o.od-refMs)/DAY)),HZ=w+Math.min(365,fk.length?Math.max(...fk):0);
   const day=new Array(n+HZ).fill(0);
@@ -1003,7 +1005,7 @@ function computeLimit(active){
   let hi=0;for(let i=0;i<n;i++)if(pts[i].v>pts[hi].v)hi=i;
   let fpk=null,fover=null;
   if(fcs.length){for(let k=1;k<=HZ;k++){const q=pts[n-1+k];if(!fpk||q.v>fpk.v)fpk=q;if(has&&fover==null&&q.v>lim)fover=q;}}
-  return{fc:fcs.length,fpk,fover,has,lim,w,shippedOnly,nUsed:used.length,nUpto,nPending,pts,nHist:n,periods,cur:pts[n-1].v,hi};
+  return{fc:fcs.length,fpk,fover,has,lim,w,warnPct,shippedOnly,nUsed:used.length,nUpto,nPending,pts,nHist:n,periods,cur:pts[n-1].v,hi};
 }
 function renderLimit(){
   const L=limState,w=L.w;
@@ -1020,6 +1022,8 @@ function renderLimit(){
   tiles.push(['Orders Counted',String(L.nUsed),L.shippedOnly?`of ${L.nUpto} orders, ${L.nPending} not shipped yet`:`${L.nPending} not shipped yet, still counted`]);
   tiles.push(['Limit',L.has?money(L.lim):'Not Set',L.has?'your taxable value limit':'enter a limit above']);
   tiles.push(L.has?(L.cur>L.lim?['Over By',money(L.cur-L.lim),'above the limit']:['Headroom',money(L.lim-L.cur),'left before the limit']):['Headroom','N/A','set a limit']);
+  const lwarn=L.has?L.lim*L.warnPct/100:0,lnear=L.has&&!ongoing&&L.cur>=lwarn;
+  tiles.push(['Warning Level',L.has?money(lwarn):'N/A',L.has?(lnear?`past your ${L.warnPct}% warning`:`${L.warnPct}% of the limit`):'set a limit']);
   tiles.push(['First Exceeded',L.periods.length?fmtDate(L.pts[L.periods[0].s].t):(L.has?'Never':'N/A'),L.has?(L.periods.length?`${L.periods.length} time${L.periods.length===1?'':'s'} over the limit`:'in the loaded data'):'set a limit']);
   tiles.push(['Expected Back Under',ongoing?(ongoing.back!=null?fmtDate(L.pts[ongoing.back].t):'N/A'):(L.has?'Not Over':'N/A'),
     ongoing?(ongoing.back!=null?`${ongoing.back-(n-1)} day${ongoing.back-(n-1)===1?'':'s'} after ${asOf}${L.fc?', counting your forecast items':' if no new orders'}`:'not within the window'):(L.has?'currently under the limit':'set a limit')]);
@@ -1035,11 +1039,11 @@ function renderLimit(){
     note=`<b>Over the limit.</b> As of ${asOf}, your last ${w} days total ${money(L.cur)}, which is ${money(L.cur-L.lim)} over your ${money(L.lim)} limit. You first went over on <b>${first}</b>. `
       +(back?`Expected to fall back to or below the limit on <b>${back}</b>${L.fc?', counting your forecast items':', if no new orders are placed'}.`:`The total does not fall back under the limit within ${w} days.`);
   }else{
-    note=`<b>Under the limit.</b> As of ${asOf}, your last ${w} days total ${money(L.cur)}, leaving ${money(L.lim-L.cur)} of room under your ${money(L.lim)} limit. `
+    note=`<b>${lnear?'Approaching the limit.':'Under the limit.'}</b> As of ${asOf}, your last ${w} days total ${money(L.cur)}, leaving ${money(L.lim-L.cur)} of room under your ${money(L.lim)} limit`+(lnear?`, past your ${L.warnPct}% warning level of ${money(lwarn)}. `:'. ')
       +(L.periods.length?`You were over the limit ${L.periods.length} time${L.periods.length===1?'':'s'} before; the most recent period started ${fmtDate(L.pts[L.periods[L.periods.length-1].s].t)}.`:'You have not gone over the limit in the loaded data.');
   }
   set(tiles,note);
-  $('#limNote').className='callout'+(ongoing?' over':(L.has?' ok':''));
+  $('#limNote').className='callout'+(ongoing?' over':lnear?' near':(L.has?' ok':''));
   $('#limTable').innerHTML=L.has?(L.periods.length
     ?'<tr>'+sth('Exceeded On','numa')+sth('Peak Total')+sth('Peak Date','numa')+sth('Back Under On','numa')+sth('Days Over')+sth('Status','str')+'</tr>'
       +L.periods.map(p=>{const back=p.back!=null?L.pts[p.back].t:null;
@@ -1047,7 +1051,7 @@ function renderLimit(){
     :'<tr><td style="text-align:center;color:var(--muted)">Your rolling total never went over the limit in the loaded data.</td></tr>')
     :'<tr><td style="text-align:center;color:var(--muted)">Enter a limit above to see over-limit periods.</td></tr>';
   $('#limLegend').innerHTML=`<span><i style="border-color:var(--s1)"></i>Rolling ${w}-Day Total${L.shippedOnly?' (Shipped Only)':''}</span><span><i style="border-color:var(--s1);border-top-style:dashed"></i>Projection (${L.fc?'With Forecast Items':'No New Orders'})</span>`
-    +(L.has?`<span><i class="sw" style="background:var(--s2);opacity:.45"></i>Above Limit</span><span><i style="border-color:var(--text2);border-top-style:dashed"></i>Limit</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--s2)"/></svg>Exceeded</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--surface)" stroke="var(--s1)" stroke-width="2.5"/></svg>Back Under</span>`:'');
+    +(L.has?`<span><i style="border-color:var(--s2);border-top-style:dotted;opacity:.6"></i>Warning Level</span><span><i class="sw" style="background:var(--s2);opacity:.45"></i>Above Limit</span><span><i style="border-color:var(--text2);border-top-style:dashed"></i>Limit</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--s2)"/></svg>Exceeded</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--surface)" stroke="var(--s1)" stroke-width="2.5"/></svg>Back Under</span>`:'');
 }
 function limitChart(){
   const host=$('#chLimit'),L=limState;
@@ -1069,6 +1073,8 @@ function limitChart(){
     s+=`<path d="M${X(0)},${Y(0)}L${pts.map((p,i)=>X(i)+','+Y(p.v)).join('L')}L${X(N-1)},${Y(0)}Z" fill="var(--s2)" opacity=".32" clip-path="url(#limclip)"/>`;
     s+=`<line x1="${l}" x2="${W-r}" y1="${limY}" y2="${limY}" stroke="var(--text2)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
     s+=`<text x="${W-r}" y="${limY-6}" text-anchor="end" class="val">Limit ${money0(L.lim)}</text>`;
+    const lwy=Y(L.lim*L.warnPct/100);
+    s+=`<line x1="${l}" x2="${W-r}" y1="${lwy}" y2="${lwy}" stroke="var(--s2)" stroke-width="1.5" stroke-dasharray="2 4" opacity=".8"/><text x="${W-r}" y="${lwy+14}" text-anchor="end" style="fill:var(--text2)">Warning ${money0(L.lim*L.warnPct/100)}</text>`;
   }
   if(N>nh)s+=`<line x1="${X(nh-1)}" x2="${X(nh-1)}" y1="${t}" y2="${t+ih}" stroke="var(--line)" stroke-width="1"/><text x="${X(nh-1)+6}" y="${t+10}">Projection</text><text x="${X(nh-1)-6}" y="${t+10}" text-anchor="end">As of ${fmtShort(refMs)}</text>`;
   s+=`<path d="M${pts.slice(0,nh).map((p,i)=>X(i)+','+Y(p.v)).join('L')}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>`;
@@ -1194,9 +1200,10 @@ $('#fcTable').addEventListener('click',e=>{
 fcLoad();fcResetForm();renderForecast();
 $('#limVal').oninput=()=>{try{localStorage.setItem('vine-limit',$('#limVal').value);}catch(e){}render();};
 $('#limWin').oninput=()=>{try{localStorage.setItem('vine-limwin',$('#limWin').value);}catch(e){}render();};
+$('#limWarn').oninput=()=>{try{localStorage.setItem('vine-limwarn',$('#limWarn').value);}catch(e){}render();};
 $('#limShip').onchange=()=>{try{localStorage.setItem('vine-limship',$('#limShip').value);}catch(e){}render();};
 $('#limClear').onclick=()=>{$('#limVal').value='';try{localStorage.removeItem('vine-limit');}catch(e){}render();};
-try{const sv=localStorage.getItem('vine-limit'),sw=localStorage.getItem('vine-limwin');if(sv)$('#limVal').value=sv;if(sw)$('#limWin').value=sw;const ss=localStorage.getItem('vine-limship');if(ss==='shipped'||ss==='all')$('#limShip').value=ss;}catch(e){}
+try{const sv=localStorage.getItem('vine-limit'),sw=localStorage.getItem('vine-limwin');if(sv)$('#limVal').value=sv;if(sw)$('#limWin').value=sw;const sx=localStorage.getItem('vine-limwarn');if(sx)$('#limWarn').value=sx;const ss=localStorage.getItem('vine-limship');if(ss==='shipped'||ss==='all')$('#limShip').value=ss;}catch(e){}
 
 let volState=null;
 function volWindow(){return Math.max(1,Math.min(365,Math.round(parseFloat($('#ovWin').value)||30)));}
