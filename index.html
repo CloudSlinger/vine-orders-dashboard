@@ -49,6 +49,8 @@ button{cursor:pointer;font-weight:550}
 button:hover{border-color:var(--s2)}
 .hero input,.hero button{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);color:#fff;color-scheme:dark}
 .hero button:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4)}
+.hero button.active{background:#ff9900;border-color:#ff9900;color:#0b0f14;font-weight:650}
+.hero input.active{border-color:#ff9900;box-shadow:0 0 0 1px #ff9900}
 .hero button.primary,.primary-lg{background:#ff9900;border-color:#ff9900;color:#0b0f14;font-weight:650}
 .hero button.primary:hover,.primary-lg:hover{background:#ffad33;border-color:#ffad33}
 main.wrap{padding-bottom:56px}
@@ -140,6 +142,8 @@ body.empty #dash,body.empty .ctl-data{display:none}
 body:not(.empty) #emptyState{display:none}
 .foot{max-width:1760px;margin:8px auto 0;padding:20px 24px 40px;border-top:1px solid var(--line);color:var(--text2);font-size:12.5px;line-height:1.6}
 .foot b{color:var(--text)}
+#ovNote.near{border-left-color:#ff9900}
+#ovNote.over{border-left-color:#c7511f;background:rgba(199,81,31,.10)}
 .foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 .foot a:hover{color:var(--s2)}
 .foot p{margin:0 0 6px}
@@ -262,6 +266,24 @@ th.s.desc::after{content:" \25BC";opacity:1}
     <div class="chart" id="chLimit"></div>
     <h3>Over-Limit Periods</h3>
     <div class="tscroll"><table id="limTable"></table></div>
+  </div>
+
+  <div class="card" id="volCard">
+    <h2>Order Quantity Limit Tracker</h2>
+    <p class="note">Enter the most orders you want to place in a window of days, such as 200 in 30 days. The tracker counts your orders over a rolling window, warns you as you approach the limit, shows how many orders still fit and when you would reach it at your recent pace, marks each time you go over, and estimates the date you fall back under it if no new orders are placed. It counts back from the date in the control at the top of the page.</p>
+    <div class="frow" style="margin-bottom:16px">
+      <label>Maximum Orders<input id="ovThr" type="number" min="1" step="1" placeholder="For example 200"></label>
+      <label>Window (Days)<input id="ovWin" type="number" min="1" max="365" step="1" value="30"></label>
+      <label>Warn At (% Of Limit)<input id="ovWarn" type="number" min="1" max="100" step="1" value="80"></label>
+      <label>Items Counted<select id="ovShip"><option value="all">All Items</option><option value="shipped">Shipped Items Only</option></select></label>
+      <button id="ovClear">Clear Limit</button>
+    </div>
+    <div class="callout" id="ovNote"></div>
+    <div class="pcards auto" id="ovTiles"></div>
+    <div class="legend" id="ovLegend"></div>
+    <div class="chart" id="chVol"></div>
+    <h3>Over-Limit Periods</h3>
+    <div class="tscroll"><table id="ovTable"></table></div>
   </div>
 
   <div class="card" id="taxCard">
@@ -476,7 +498,7 @@ function rebuild(){
   title=datasets.length===1?datasets[0].title:`Amazon Vine Itemized Reports, ${yrs[0]}${yrs.length>1?' to '+yrs[yrs.length-1]:''}`;
   document.body.classList.remove('empty');
   const m=$('#emptyMsg');m.classList.remove('err');m.textContent='Choose one or more Vine itemized reports (.xlsx), for example one file per year.';
-  resetUI();fillFilters();setRefLatest();render();
+  resetUI();fillFilters();setRefToday();render();
 }
 function renderLoaded(){
   $('#chips').innerHTML=datasets.map((d,i)=>`<span class="chip"><span class="nm">${esc(d.name)}</span> <small>${d.orders.length} orders · ${fmtDate(d.min)} to ${fmtDate(d.max)}</small><button class="x" data-i="${i}" title="Remove this report" aria-label="Remove ${esc(d.name)}">×</button></span>`).join('');
@@ -527,10 +549,19 @@ function coverageDays(){
 }
 
 let refMs=null;
-function setRefLatest(){refMs=Math.max(...orders.map(o=>o.od));$('#ref').value=isoDate(refMs);}
+const todayMs=()=>{const n=new Date();return Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());};
+const latestMs=()=>orders.length?Math.max(...orders.map(o=>o.od)):null;
+function syncRefButtons(){
+  const isLast=refMs!=null&&refMs===latestMs(),isToday=refMs!=null&&refMs===todayMs();
+  $('#btnLast').classList.toggle('active',isLast);$('#btnLast').setAttribute('aria-pressed',isLast?'true':'false');
+  $('#btnToday').classList.toggle('active',isToday);$('#btnToday').setAttribute('aria-pressed',isToday?'true':'false');
+  $('#ref').classList.toggle('active',!isLast&&!isToday);
+}
+function setRefLatest(){refMs=latestMs();$('#ref').value=isoDate(refMs);syncRefButtons();}
+function setRefToday(){refMs=todayMs();$('#ref').value=isoDate(refMs);syncRefButtons();}
 $('#btnLast').onclick=()=>{setRefLatest();render();};
-$('#btnToday').onclick=()=>{const n=new Date();refMs=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());$('#ref').value=isoDate(refMs);render();};
-$('#ref').onchange=e=>{const v=parseDate(e.target.value);if(v!=null){refMs=v;render();}};
+$('#btnToday').onclick=()=>{setRefToday();render();};
+$('#ref').onchange=e=>{const v=parseDate(e.target.value);if(v!=null){refMs=v;syncRefButtons();render();}};
 $('#btnTheme').onclick=()=>{
   const r=document.documentElement;
   const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
@@ -841,6 +872,175 @@ $('#limShip').onchange=()=>{try{localStorage.setItem('vine-limship',$('#limShip'
 $('#limClear').onclick=()=>{$('#limVal').value='';try{localStorage.removeItem('vine-limit');}catch(e){}render();};
 try{const sv=localStorage.getItem('vine-limit'),sw=localStorage.getItem('vine-limwin');if(sv)$('#limVal').value=sv;if(sw)$('#limWin').value=sw;const ss=localStorage.getItem('vine-limship');if(ss==='shipped'||ss==='all')$('#limShip').value=ss;}catch(e){}
 
+let volState=null;
+function volWindow(){return Math.max(1,Math.min(365,Math.round(parseFloat($('#ovWin').value)||30)));}
+function computeVolume(active){
+  const lim=parseFloat($('#ovThr').value),has=!isNaN(lim)&&lim>0;
+  const w=volWindow(),warnPct=Math.max(1,Math.min(100,parseFloat($('#ovWarn').value)||80));
+  const shippedOnly=$('#ovShip').value==='shipped';
+  const upto=active.filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
+  const base={has,lim,w,warnPct,shippedOnly,nUsed:used.length,nUpto,nPending,pts:[],periods:[],nHist:0};
+  if(!used.length)return Object.assign(base,{empty:true});
+  const start=Math.min(...used.map(o=>o.od)),n=Math.round((refMs-start)/DAY)+1;
+  const day=new Array(n).fill(0);
+  used.forEach(o=>{day[Math.round((o.od-start)/DAY)]++;});
+  const pref=[0];for(let i=0;i<n;i++)pref.push(pref[i]+day[i]);
+  const covDays=coverageDays(),cov=new Set(covDays),maxCov=covDays.length?covDays[covDays.length-1]:0;
+  const pts=[];
+  for(let i=0;i<n;i++){const t0=start+i*DAY;pts.push({t:t0,v:pref[i+1]-pref[Math.max(0,i+1-w)],cov:cov.has(t0)||t0>maxCov});}
+  for(let k=1;k<=w;k++)pts.push({t:refMs+k*DAY,v:pref[n]-pref[Math.min(n,Math.max(0,n+k-w))],proj:true});
+  const periods=[];
+  if(has){
+    let cur=null;
+    for(let i=0;i<n;i++){
+      const over=pts[i].cov&&pts[i].v>lim;
+      if(over){
+        if(!cur){cur={s:i,e:i,peak:pts[i].v,pi:i};periods.push(cur);}
+        else{cur.e=i;if(pts[i].v>cur.peak){cur.peak=pts[i].v;cur.pi=i;}}
+      }else cur=null;
+    }
+    periods.forEach(p=>{
+      if(p.e===n-1){p.ongoing=true;p.back=null;for(let k=1;k<=w;k++){if(pts[n-1+k].v<=lim){p.back=n-1+k;break;}}}
+      else p.back=p.e+1;
+    });
+  }
+  let hi=0;for(let i=0;i<n;i++)if(pts[i].v>pts[hi].v)hi=i;
+  const m=Math.min(7,n),rate=(pref[n]-pref[n-m])/m;
+  const pace=[];for(let k=1;k<=w;k++){const old=pref[n]-pref[Math.min(n,Math.max(0,n+k-w))];pace.push(old+rate*Math.min(k,w));}
+  const cur=pts[n-1].v;
+  let paceHit=null;
+  if(has){
+    if(cur>lim){for(let k=1;k<=w;k++){if(pace[k-1]<=lim){paceHit=k;break;}}}
+    else{for(let k=1;k<=w;k++){if(pace[k-1]>lim){paceHit=k;break;}}}
+  }
+  const k7=Math.min(7,w),freed=cur-pts[n-1+k7].v,freedDate=pts[n-1+k7].t;
+  return Object.assign(base,{pts,nHist:n,periods,cur,hi,rate,pace,paceHit,freed,freedDate,k7});
+}
+const fmtRate2=v=>String(+Number(v).toFixed(2));
+function renderVolume(){
+  const V=volState,w=V.w,plural=(n,a,b)=>n===1?a:b,wd=`${w} ${plural(w,'day','days')}`;
+  const set=(tiles,note)=>{
+    $('#ovTiles').innerHTML=tiles.map(k=>`<div class="pcard"><div class="l">${k[0]}</div><div class="v" style="font-size:24px">${k[1]}</div><div class="m">${k[2]}</div></div>`).join('');
+    $('#ovNote').innerHTML=note;
+  };
+  if(V.empty){
+    set([[`Rolling ${w}-Day Orders`,'N/A',V.shippedOnly?'no shipped orders on or before the as-of date':'no orders on or before the as-of date']],V.shippedOnly?'No shipped orders are dated on or before the as-of date, so there is nothing to count yet.':'No orders are dated on or before the as-of date, so there is nothing to count yet.');
+    $('#ovTable').innerHTML='';$('#ovLegend').innerHTML='';return;
+  }
+  const asOf=fmtDate(refMs),n=V.nHist,nh=n,pts=V.pts,ongoing=V.periods.find(p=>p.ongoing);
+  const over=V.has&&V.cur>V.lim,warnCount=V.has?V.lim*V.warnPct/100:0,near=V.has&&!over&&V.cur>=warnCount,room=V.has?V.lim-V.cur:0;
+  const rateTxt=fmtRate2(V.rate),pctUsed=V.has?Math.round(V.cur/V.lim*100):0;
+  const tiles=[[`Rolling ${w}-Day Orders`,String(V.cur),`as of ${asOf}`+(V.shippedOnly?', shipped items only':'')]];
+  tiles.push(['Limit Used',V.has?pctUsed+'%':'N/A',V.has?(over?'over the limit':near?`past your ${V.warnPct}% warning`:'of your order limit'):'enter a limit above']);
+  tiles.push(['Order Limit',V.has?String(V.lim):'Not Set',V.has?`orders per ${w} ${plural(w,'day','days')}`:'enter a limit above']);
+  tiles.push(V.has?(over?['Over By',String(V.cur-V.lim),`${plural(V.cur-V.lim,'order','orders')} above the limit`]:['Room Left',String(room),`${plural(room,'order','orders')} left before the limit`]):['Room Left','N/A','set a limit']);
+  tiles.push(['Warning Level',V.has?String(Math.ceil(warnCount)):'N/A',V.has?`${V.warnPct}% of the limit`:'set a limit']);
+  tiles.push(['Sustainable Pace',V.has?fmtRate2(V.lim/w):'N/A',V.has?`orders per day keeps you at the limit (${fmtRate2(V.lim/w*7)} per week)`:'set a limit']);
+  tiles.push(['Recent Pace',rateTxt,`orders per day over the last ${Math.min(7,V.nHist)} days`]);
+  tiles.push([`Room In ${V.k7} ${plural(V.k7,'Day','Days')}`,String(V.freed),V.freed?`${plural(V.freed,'order drops','orders drop')} out of the window by ${fmtShort(V.freedDate)}`:'no orders drop out of the window']);
+  if(V.has){
+    if(over)tiles.push(['At Current Pace',V.paceHit!=null?fmtDate(pts[nh-1+V.paceHit].t):'Stays Over',V.paceHit!=null?`back under the limit if you keep ordering ${rateTxt} per day`:`recent pace of ${rateTxt} per day keeps you over`]);
+    else tiles.push(['At Current Pace',V.paceHit!=null?fmtDate(pts[nh-1+V.paceHit].t):'Not Reached',V.paceHit!=null?`limit reached if you keep ordering ${rateTxt} per day`:`stays under for ${w} days at ${rateTxt} per day`]);
+  }
+  tiles.push(['First Exceeded',V.periods.length?fmtDate(pts[V.periods[0].s].t):(V.has?'Never':'N/A'),V.has?(V.periods.length?`${V.periods.length} time${V.periods.length===1?'':'s'} over the limit`:'in the loaded data'):'set a limit']);
+  tiles.push(['Expected Back Under',ongoing?(ongoing.back!=null?fmtDate(pts[ongoing.back].t):'N/A'):(V.has?'Not Over':'N/A'),
+    ongoing?(ongoing.back!=null?`${ongoing.back-(nh-1)} day${ongoing.back-(nh-1)===1?'':'s'} after ${asOf} if no new orders`:'not within the window'):(V.has?'currently under the limit':'set a limit')]);
+  tiles.push(['Highest Rolling Count',String(pts[V.hi].v),`on ${fmtDate(pts[V.hi].t)}`]);
+  tiles.push(['Orders Counted',String(V.nUsed),V.shippedOnly?`of ${V.nUpto} orders, ${V.nPending} not shipped yet`:`${V.nPending} not shipped yet, still counted`]);
+  const paceDate=V.paceHit!=null?fmtDate(pts[nh-1+V.paceHit].t):null;
+  let note;
+  if(!V.has)note='Enter a maximum number of orders above to get warnings before you reach it and to see when your rolling count goes over it.';
+  else if(over){
+    const first=fmtDate(pts[ongoing?ongoing.s:V.periods[V.periods.length-1].s].t),back=ongoing&&ongoing.back!=null?fmtDate(pts[ongoing.back].t):null;
+    note=`<b>Over the limit.</b> As of ${asOf}, you placed ${V.cur} ${plural(V.cur,'order','orders')} in the last ${wd}, which is ${V.cur-V.lim} over your limit of ${V.lim}. This stretch began on <b>${first}</b>. `
+      +(back?`Expected to fall back to or below the limit on <b>${back}</b>, if no new orders are placed. Holding new orders until then keeps you from staying over.`:`The count does not fall back under the limit within ${wd}.`);
+  }else if(near){
+    note=`<b>Approaching the limit.</b> As of ${asOf}, you placed ${V.cur} ${plural(V.cur,'order','orders')} in the last ${wd}, which is ${pctUsed}% of your limit of ${V.lim}. Only <b>${room}</b> more ${plural(room,'order fits','orders fit')} before you go over. `
+      +(paceDate?`At your recent pace of ${rateTxt} per day you would reach the limit around <b>${paceDate}</b>. `:'')
+      +(V.freed?`About ${V.freed} ${plural(V.freed,'order drops','orders drop')} out of the window by ${fmtShort(V.freedDate)}, which frees up room. `:'')
+      +`Consider prioritizing the items you most want to review before you reach the limit.`;
+  }else{
+    note=`<b>Under the limit.</b> As of ${asOf}, you placed ${V.cur} ${plural(V.cur,'order','orders')} in the last ${wd} (${pctUsed}% of your limit of ${V.lim}), leaving room for ${room} more. `
+      +(paceDate?`At your recent pace of ${rateTxt} per day you would reach the limit around <b>${paceDate}</b>. `:`At your recent pace of ${rateTxt} per day you stay under the limit. `)
+      +`You will get a warning at ${Math.ceil(warnCount)} orders (${V.warnPct}%). `
+      +(V.periods.length?`You were over the limit ${V.periods.length} time${V.periods.length===1?'':'s'} before; the most recent period started ${fmtDate(pts[V.periods[V.periods.length-1].s].t)}.`:'You have not gone over the limit in the loaded data.');
+  }
+  set(tiles,note);
+  $('#ovNote').className='callout'+(over?' over':near?' near':'');
+  $('#ovTable').innerHTML=V.has?(V.periods.length
+    ?'<tr>'+sth('Exceeded On','numa')+sth('Peak Count')+sth('Peak Date','numa')+sth('Back Under On','numa')+sth('Days Over')+sth('Status','str')+'</tr>'
+      +V.periods.map(p=>{const back=p.back!=null?pts[p.back].t:null;
+        return `<tr><td data-v="${pts[p.s].t}">${fmtDate(pts[p.s].t)}</td><td data-v="${p.peak}">${p.peak}</td><td data-v="${pts[p.pi].t}">${fmtDate(pts[p.pi].t)}</td><td data-v="${back??0}">${back!=null?fmtDate(back)+(p.ongoing?' <span class="badge">Expected</span>':''):'N/A'}</td><td>${p.e-p.s+1}${p.ongoing?' so far':''}</td><td data-v="${p.ongoing?1:0}"><span class="badge">${p.ongoing?'Ongoing':'Recovered'}</span></td></tr>`;}).join('')
+    :'<tr><td style="text-align:center;color:var(--muted)">Your rolling count never went over the limit in the loaded data.</td></tr>')
+    :'<tr><td style="text-align:center;color:var(--muted)">Enter a limit above to see over-limit periods.</td></tr>';
+  $('#ovLegend').innerHTML=`<span><i style="border-color:var(--s1)"></i>Rolling ${w}-Day Orders${V.shippedOnly?' (Shipped Only)':''}</span><span><i style="border-color:var(--s1);border-top-style:dashed"></i>Projection (No New Orders)</span><span><i style="border-color:var(--s2);border-top-style:dotted"></i>At Recent Pace</span>`
+    +(V.has?`<span><i style="border-color:var(--s2);border-top-style:dotted;opacity:.6"></i>Warning Level</span><span><i class="sw" style="background:var(--s2);opacity:.45"></i>Above Limit</span><span><i style="border-color:var(--text2);border-top-style:dashed"></i>Limit</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--s2)"/></svg>Exceeded</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"/></svg>Back Under</span>`:'');
+}
+function volumeChart(){
+  const host=$('#chVol'),V=volState;
+  if(!V||V.empty||!V.pts.length){host.innerHTML='';return;}
+  const W=Math.max(host.clientWidth||600,640),H=310,l=52,r=18,t=30,b=34,P=34,iw=W-l-r-P,ih=H-t-b;
+  const pts=V.pts,N=pts.length,nh=V.nHist;
+  const rawTop=Math.max(...pts.map(p=>p.v),V.has?V.lim*1.35:0,4),rawStep=rawTop/4,mag=Math.pow(10,Math.floor(Math.log10(rawStep)));
+  const ymax=4*[1,2,3,4,5,6,8,10].map(x=>x*mag).find(x=>x>=rawStep-1e-9);
+  const X=i=>l+P+(N>1?iw*i/(N-1):iw/2),Y=v=>t+ih-ih*v/ymax;
+  const multi=new Date(pts[0].t).getUTCFullYear()!==new Date(pts[N-1].t).getUTCFullYear();
+  const dl=ms=>{const d=new Date(ms);return `${MON[d.getUTCMonth()]} ${d.getUTCDate()}${multi?" '"+String(d.getUTCFullYear()).slice(2):''}`;};
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Rolling order count compared with your limit">`;
+  const limY=V.has?Y(V.lim):0;
+  s+=`<defs><clipPath id="volclip2"><rect x="${l+P}" y="${t}" width="${iw}" height="${ih}"/></clipPath><clipPath id="volclip"><rect x="${l+P}" y="0" width="${iw}" height="${Math.max(0,limY)}"/></clipPath></defs>`;
+  let ax='';
+  for(let i=0;i<=4;i++){const y=t+ih-ih*i/4;s+=`<line class="gl" x1="${l}" x2="${W-r}" y1="${y}" y2="${y}"/>`;ax+=`<text x="${l-8}" y="${y+4}" text-anchor="end">${Math.round(ymax*i/4)}</text>`;}
+  const every=Math.ceil(N/Math.max(2,Math.floor(iw/84)));
+  pts.forEach((p,i)=>{if(i%every===0)s+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle">${dl(p.t)}</text>`;});
+  if(V.has){
+    s+=`<path d="M${X(0)},${Y(0)}L${pts.map((p,i)=>X(i)+','+Y(p.v)).join('L')}L${X(N-1)},${Y(0)}Z" fill="var(--s2)" opacity=".32" clip-path="url(#volclip)"/>`;
+    s+=`<line x1="${l}" x2="${W-r}" y1="${limY}" y2="${limY}" stroke="var(--text2)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+    s+=`<text x="${W-r}" y="${limY-6}" text-anchor="end" class="val">Limit ${V.lim}</text>`;
+    const wy=Y(V.lim*V.warnPct/100);
+    s+=`<line x1="${l}" x2="${W-r}" y1="${wy}" y2="${wy}" stroke="var(--s2)" stroke-width="1.5" stroke-dasharray="2 4" opacity=".8"/><text x="${W-r}" y="${wy+14}" text-anchor="end" style="fill:var(--text2)">Warning ${Math.ceil(V.lim*V.warnPct/100)}</text>`;
+  }
+  if(N>nh)s+=`<line x1="${X(nh-1)}" x2="${X(nh-1)}" y1="${t}" y2="${t+ih}" stroke="var(--line)" stroke-width="1"/><text x="${X(nh-1)+6}" y="${t+10}">Projection</text><text x="${X(nh-1)-6}" y="${t+10}" text-anchor="end">As of ${fmtShort(refMs)}</text>`;
+  s+=`<path d="M${pts.slice(0,nh).map((p,i)=>X(i)+','+Y(p.v)).join('L')}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>`;
+  s+=`<path d="M${pts.slice(nh-1).map((p,i)=>X(nh-1+i)+','+Y(p.v)).join('L')}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-dasharray="5 4" opacity=".75"/>`;
+  if(V.rate>0||V.pace.length)s+=`<path d="M${X(nh-1)},${Y(pts[nh-1].v)}L${V.pace.map((v,k)=>X(nh+k)+','+Y(v)).join('L')}" fill="none" stroke="var(--s2)" stroke-width="2" stroke-dasharray="2 4" stroke-linecap="round" clip-path="url(#volclip2)"/>`;
+  const halo='paint-order:stroke;stroke:var(--surface);stroke-width:3px;font-weight:650;fill:var(--text)';
+  const anchor=px=>px<l+90?'start':(px>W-r-90?'end':'middle');
+  const labelAll=V.periods.length<=1;
+  V.periods.forEach((p,pi)=>{
+    const x1=X(p.s),y1=Y(pts[p.s].v);
+    s+=`<circle cx="${x1}" cy="${y1}" r="5.5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>`;
+    if(labelAll||pi===V.periods.length-1)s+=`<text x="${x1}" y="${y1<t+22?y1+20:y1-12}" text-anchor="${anchor(x1)}" style="${halo}">Exceeded ${fmtShort(pts[p.s].t)}</text>`;
+    if(p.back!=null){
+      const x2=X(p.back),y2=Y(pts[p.back].v);
+      s+=`<circle cx="${x2}" cy="${y2}" r="5" fill="var(--surface)" stroke="var(--s1)" stroke-width="2.5"/>`;
+      if(labelAll||pi===V.periods.length-1)s+=`<text x="${x2}" y="${y2>t+ih-26?y2-12:y2+20}" text-anchor="${anchor(x2)}" style="${halo}">${p.ongoing?'Expected back under ':'Back under '}${fmtShort(pts[p.back].t)}</text>`;
+    }
+  });
+  s+=`<line id="volG" y1="${t}" y2="${t+ih}" stroke="var(--text2)" stroke-width="1" visibility="hidden"/><circle id="volD" r="4.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  s+=`<rect id="volHit" x="${l+P}" y="${t}" width="${iw}" height="${ih}" fill="transparent"/></svg>`;
+  mountChart(host,s,ax,H,l);
+  const hit=host.querySelector('#volHit'),g=host.querySelector('#volG'),d=host.querySelector('#volD');
+  hit.onmousemove=e=>{
+    const rc=hit.getBoundingClientRect(),i=Math.max(0,Math.min(N-1,Math.round((e.clientX-rc.left)/rc.width*(N-1)))),p=pts[i];
+    g.setAttribute('x1',X(i));g.setAttribute('x2',X(i));g.setAttribute('visibility','visible');
+    d.setAttribute('cx',X(i));d.setAttribute('cy',Y(p.v));d.setAttribute('visibility','visible');
+    const status=V.has?(p.v>V.lim?`<br>Over the limit by ${p.v-V.lim}`:`<br>${V.lim-p.v} under the limit`):'';
+    const pv=p.proj?V.pace[i-nh]:null;
+    showTip(`<b>${fmtDate(p.t)}${p.proj?' (projected)':''}</b>${V.w}-day orders: ${p.v}${status}${p.proj?`<br>Assumes no new orders<br>At recent pace: ${Math.round(pv)}`:''}`,e);
+  };
+  hit.onmouseleave=()=>{g.setAttribute('visibility','hidden');d.setAttribute('visibility','hidden');hideTip();};
+}
+$('#ovThr').oninput=()=>{try{localStorage.setItem('vine-ovThr',$('#ovThr').value);}catch(e){}render();};
+['ovWin','ovWarn'].forEach(id=>{$('#'+id).oninput=()=>{try{localStorage.setItem('vine-'+id,$('#'+id).value);}catch(e){}render();};});
+$('#ovShip').onchange=()=>{try{localStorage.setItem('vine-ovShip',$('#ovShip').value);}catch(e){}render();};
+$('#ovClear').onclick=()=>{$('#ovThr').value='';try{localStorage.removeItem('vine-ovThr');}catch(e){}render();};
+try{
+  const v=localStorage.getItem('vine-ovThr');if(v)$('#ovThr').value=v;
+  ['ovWin','ovWarn'].forEach(id=>{const x=localStorage.getItem('vine-'+id);if(x)$('#'+id).value=x;});
+  const sh=localStorage.getItem('vine-ovShip');if(sh==='shipped'||sh==='all')$('#ovShip').value=sh;
+}catch(e){}
+
 let taxState=null;
 function nextBizDay(y,m,d){
   const hol=(dt)=>{
@@ -947,8 +1147,8 @@ $('#taxPct').oninput=()=>{try{localStorage.setItem('vine-taxpct',$('#taxPct').va
 $('#taxYear').onchange=()=>render();
 try{const sp=localStorage.getItem('vine-taxpct');if(sp)$('#taxPct').value=sp;}catch(e){}
 
-const TILE_BOXES=[['#kpis','.kpi'],['#pcards','.pcard'],['#limTiles','.pcard'],['#taxTiles','.pcard']];
-const tileKey=el=>{const l=(el.querySelector('.l')||{}).textContent||'';const k=l.trim().toLowerCase().replace(/\d+/g,'#');return (k==='over by'||k==='headroom')?'over by / headroom':k;};
+const TILE_BOXES=[['#kpis','.kpi'],['#pcards','.pcard'],['#limTiles','.pcard'],['#ovTiles','.pcard'],['#taxTiles','.pcard']];
+const tileKey=el=>{const l=(el.querySelector('.l')||{}).textContent||'';const k=l.trim().toLowerCase().replace(/\d+/g,'#');return (k==='over by'||k==='headroom'||k==='room left')?'over by / headroom':k;};
 const tileStore=id=>'vine-tiles-'+id.slice(1);
 function applyTileOrder(box,sel){
   const host=$(box);if(!host)return;
@@ -992,6 +1192,15 @@ reportCards().forEach(c=>{
 const defaultLayout=getCardLayout();
 try{const sl=JSON.parse(localStorage.getItem('vine-layout')||'null');if(Array.isArray(sl))setCardLayout(sl);}catch(e){}
 let dragCard=null,lastMove=0;
+function balanceGrids(){
+  ['#limTiles','#ovTiles','#taxTiles','#cxTiles'].forEach(id=>{
+    const el=$(id);if(!el)return;const n=el.children.length;
+    if(!n){el.style.gridTemplateColumns='';return;}
+    const max=Math.max(1,Math.floor((el.clientWidth+12)/202));
+    const rows=Math.ceil(n/max),cols=Math.ceil(n/rows);
+    el.style.gridTemplateColumns='repeat('+cols+',minmax(0,1fr))';
+  });
+}
 const redrawSoon=()=>{if(window.__redraw)requestAnimationFrame(()=>window.__redraw());};
 dashEl.addEventListener('mouseover',e=>{const g=e.target.closest&&e.target.closest('.grip');if(g&&!dragCard){const c=g.closest('.card');if(c)c.setAttribute('draggable','true');}});
 dashEl.addEventListener('mouseout',e=>{const g=e.target.closest&&e.target.closest('.grip');if(g&&!dragCard&&!(e.relatedTarget&&g.contains(e.relatedTarget))){const c=g.closest('.card');if(c)c.removeAttribute('draggable');}});
@@ -1099,9 +1308,11 @@ function render(){
 
   const ins=insights(active,days);
   limState=computeLimit(active);renderLimit();
+  volState=computeVolume(active);renderVolume();
   renderTax();
   charts=[];
   const drawCharts=()=>{
+    balanceGrids();
     barChart($('#chMonth'),mkeys.map(k=>{const s=stats(mm.get(k));return{label:monthLabel(k),value:s.n,tip:`<b>${monthLabel(k)}</b>${s.n} orders<br>${money(s.etv)} est. tax value<br>${money(s.avg)} avg`}}),{aria:'Orders per month',h:240,labelW:62});
     const wk=new Map();active.forEach(o=>{const k=weekStart(o.od);wk.set(k,(wk.get(k)||[]).concat(o));});
     const wkeys=[...wk.keys()].sort((a,b)=>a-b),wmax=Math.max(...wkeys.map(k=>wk.get(k).length));
@@ -1115,6 +1326,7 @@ function render(){
     barChart($('#chTier'),tiers.map(t=>{const l=active.filter(o=>t[1](o.etv));return{label:t[0],value:l.length,tip:`<b>${t[0]}</b>${l.length} orders<br>${money(sum(l.map(o=>o.etv)))} est. tax value`}}),{aria:'Orders by value tier'});
     insightCharts(ins);
     limitChart();
+    volumeChart();
     taxChart();
   };
   drawCharts(); window.__redraw=drawCharts;
