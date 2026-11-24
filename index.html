@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="author" content="CloudSlinger">
 <title>Vine Orders Dashboard</title>
+<meta name="author" content="CloudSlinger">
 <style>
 :root{
   color-scheme:light; --r:2px;
@@ -139,11 +139,27 @@ body.empty #dash,body.empty .ctl-data{display:none}
 body:not(.empty) #emptyState{display:none}
 .foot{max-width:1760px;margin:8px auto 0;padding:20px 24px 40px;border-top:1px solid var(--line);color:var(--text2);font-size:12.5px;line-height:1.6}
 .foot b{color:var(--text)}
+.foot a{color:var(--text);text-decoration:underline;text-underline-offset:2px}
+.foot a:hover{color:var(--s2)}
 .foot p{margin:0 0 6px}
 .frow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
 .frow label{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);font-weight:650}
 .frow input,.frow select{text-transform:none;letter-spacing:0;font-weight:400;font-size:14px}
 .frow #fMin,.frow #fMax{width:120px}
+.frow input,.frow select,.frow .ms>button{height:38px;box-sizing:border-box}
+.frow .fld{display:flex;flex-direction:column;gap:4px}
+.frow .fl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);font-weight:650}
+.ms{position:relative}
+.ms>button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:176px;text-align:left;font-weight:400;font-size:14px}
+.ms>button::after{content:"";width:6px;height:6px;border-right:2px solid var(--text2);border-bottom:2px solid var(--text2);transform:rotate(45deg) translateY(-2px);flex:none}
+.ms-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:230px;max-height:360px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}
+.ms-panel[hidden]{display:none}
+.ms-panel label.mi{display:flex;flex-direction:row;align-items:center;gap:10px;padding:7px 8px;text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;color:var(--text);cursor:pointer;border-radius:var(--r)}
+.ms-panel label.mi:hover{background:var(--surface2)}
+.ms-panel label.mi input{width:16px;height:16px;padding:0;accent-color:#ff9900;flex:none}
+.ms-panel .mc{margin-left:auto;color:var(--muted);font-size:12px}
+.ms-panel .mfoot{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+.ms-panel .mfoot button{width:100%;font-size:13px}
 .filters{padding:14px 18px;margin-bottom:20px}
 th.s{cursor:pointer;user-select:none}
 th.s:hover{color:var(--text)}
@@ -213,7 +229,8 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="card filters">
     <div class="frow">
-      <label>Year<select id="fYear"></select></label>
+      <div class="fld"><span class="fl">Year</span><div class="ms" id="fYear"></div></div>
+      <div class="fld"><span class="fl">Month</span><div class="ms" id="fMon"></div></div>
       <label>Category<select id="fCat"></select></label>
       <label>Min Value<input id="fMin" type="number" min="0" step="1" placeholder="$0"></label>
       <label>Max Value<input id="fMax" type="number" min="0" step="1" placeholder="No limit"></label>
@@ -339,14 +356,13 @@ th.s.desc::after{content:" \25BC";opacity:1}
 </div>
 </main>
 <footer class="foot">
-<p><b>Created By.</b> Idea and design by <a href="https://github.com/CloudSlinger" target="_blank" rel="noopener">CloudSlinger</a>. Source code and updates: <a href="https://github.com/CloudSlinger/vine-orders-dashboard" target="_blank" rel="noopener">github.com/CloudSlinger/vine-orders-dashboard</a>.</p>
+  <p><b>Created By.</b> <a href="https://github.com/CloudSlinger" target="_blank" rel="noopener">CloudSlinger</a>. Source code and updates: <a href="https://github.com/CloudSlinger/vine-orders-dashboard" target="_blank" rel="noopener">github.com/CloudSlinger/vine-orders-dashboard</a>.</p>
   <p><b>Free to Use.</b> This dashboard is free to use, share and copy. It runs entirely in your browser, and your report files are never uploaded anywhere.</p>
   <p><b>Disclaimer.</b> All figures, including estimated tax values, taxable percentages, limit tracking and quarterly payment amounts, are calculated from the report data you load and are for estimation purposes only. Nothing here constitutes tax, legal, accounting or financial advice, and no guarantee is made about accuracy or completeness. Confirm amounts and deadlines with the IRS or a qualified tax professional before filing or paying. Not affiliated with or endorsed by Amazon.</p>
   <p><b>No Warranty.</b> This dashboard is provided "as is" and "as available," without warranties of any kind, express or implied, including accuracy, reliability, merchantability, fitness for a particular purpose and non-infringement. Calculations may contain errors, and report formats, tax rules, rates and due dates can change. Estimated payment dates follow published IRS schedules and may not reflect your situation, such as a different tax year, state or local taxes, or special rules.</p>
   <p><b>Limitation of Liability.</b> To the fullest extent permitted by law, the creators and distributors of this dashboard are not liable for any direct, indirect, incidental, consequential or other damages or losses, including penalties, interest, underpayment or overpayment of taxes, or lost income, arising from its use or from decisions made based on it. You are solely responsible for the accuracy of your tax filings and payments, and use of this dashboard does not create a professional relationship of any kind.</p>
   <p><b>Privacy.</b> Your report files are read and processed locally in your browser. Only display preferences, such as theme, limit and taxable percentage, are saved in your browser's local storage on your own device.</p>
   <p><b>Trademarks.</b> Amazon, Amazon Vine and related names and colors are trademarks of Amazon.com, Inc. or its affiliates and are used here only to describe the report format this tool reads. Other product names belong to their respective owners.</p>
-
 </footer>
 <div id="tip"></div>
 
@@ -407,10 +423,10 @@ function normalize(rows){
 }
 
 let orders=[], title='Vine Orders Dashboard', sortKey='od', sortDir=-1, charts=[];
-const filt={year:'',cat:'',min:null,max:null};
+const filt={years:[],months:[],cat:'',min:null,max:null};
 const tdState={day:'',n:10};
 let insCache=null, shown=[];
-const passes=o=>(filt.year===''||new Date(o.od).getUTCFullYear()===filt.year)&&(!filt.cat||o.cat===filt.cat)&&(filt.min==null||o.etv>=filt.min)&&(filt.max==null||o.etv<=filt.max);
+const passes=o=>(!filt.years.length||filt.years.includes(new Date(o.od).getUTCFullYear()))&&(!filt.months.length||filt.months.includes(new Date(o.od).getUTCMonth()))&&(!filt.cat||o.cat===filt.cat)&&(filt.min==null||o.etv>=filt.min)&&(filt.max==null||o.etv<=filt.max);
 const sth=(l,t='num',left)=>`<th class="s" data-t="${t}"${left?' style="text-align:left"':''}>${l}</th>`;
 
 let datasets=[], dupCount=0, warnings=[];
@@ -436,7 +452,7 @@ function parseWorkbook(buf,name){
 }
 function addDataset(ds){datasets=datasets.filter(d=>d.name!==ds.name);datasets.push(ds);datasets.sort((x,y)=>x.min-y.min);}
 function resetUI(){
-  filt.year='';filt.cat='';filt.min=null;filt.max=null;tdState.day='';tdState.n=10;
+  filt.years=[];filt.months=[];filt.cat='';filt.min=null;filt.max=null;tdState.day='';tdState.n=10;
   ['#fMin','#fMax','#tdDay','#q'].forEach(s=>$(s).value='');$('#tdN').value='10';
 }
 function rebuild(){
@@ -504,7 +520,8 @@ function coverageDays(){
   const set=new Set();
   datasets.forEach(d=>{for(let t=d.min;t<=d.max;t+=DAY)set.add(t);});
   let a=[...set].sort((x,y)=>x-y);
-  if(filt.year!=='')a=a.filter(t=>new Date(t).getUTCFullYear()===filt.year);
+  if(filt.years.length)a=a.filter(t=>filt.years.includes(new Date(t).getUTCFullYear()));
+  if(filt.months.length)a=a.filter(t=>filt.months.includes(new Date(t).getUTCMonth()));
   return a;
 }
 
@@ -566,14 +583,51 @@ function monthLabel(k){return MON[k%100]+' '+Math.floor(k/100);}
 function weekStart(ms){const d=new Date(ms);const dow=(d.getUTCDay()+6)%7;return ms-dow*DAY;}
 const shipDays = o=>o.sd!=null?Math.round((o.sd-o.od)/DAY):null;
 
+const MONTHS_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MS_ALL=[];
+function makeMulti(host,allText,noun,onChange){
+  host.innerHTML='<button type="button" aria-haspopup="true" aria-expanded="false"></button><div class="ms-panel" hidden></div>';
+  const btn=host.firstChild,panel=host.lastChild;let opts=[],sel=[];
+  const label=()=>{
+    if(!sel.length)return allText;
+    const names=sel.map(v=>(opts.find(o=>o.v===v)||{}).short||String(v));
+    if(sel.length===1)return (opts.find(o=>o.v===sel[0])||{}).text||String(sel[0]);
+    return sel.length<=3?names.join(', '):sel.length+' '+noun+' Selected';
+  };
+  const draw=()=>{
+    panel.innerHTML=opts.map(o=>`<label class="mi"><input type="checkbox" value="${o.v}"${sel.includes(o.v)?' checked':''}>${o.text} <span class="mc">${o.n}</span></label>`).join('')+'<div class="mfoot"><button type="button" data-clear="1">Clear Selection</button></div>';
+    btn.textContent=label();
+  };
+  const open=o=>{panel.hidden=!o;btn.setAttribute('aria-expanded',o?'true':'false');};
+  const api={get:()=>sel.slice(),close:()=>open(false),set(o,s){opts=o;sel=s.filter(v=>opts.some(x=>x.v===v));draw();return sel.slice();}};
+  btn.onclick=e=>{e.stopPropagation();const o=panel.hidden;MS_ALL.forEach(m=>m.close());open(o);};
+  panel.addEventListener('click',e=>{e.stopPropagation();if(e.target.dataset&&e.target.dataset.clear){sel=[];draw();onChange(sel.slice());}});
+  panel.addEventListener('change',e=>{
+    if(e.target.type!=='checkbox')return;
+    sel=[...panel.querySelectorAll('input:checked')].map(x=>+x.value).sort((a,b)=>a-b);
+    btn.textContent=label();onChange(sel.slice());
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden){open(false);btn.focus();}});
+  MS_ALL.push(api);return api;
+}
+let yearMS=null,monthMS=null;
+function fillMonthOpts(){
+  const cnt=new Array(12).fill(0);
+  orders.forEach(o=>{const d=new Date(o.od);if(!filt.years.length||filt.years.includes(d.getUTCFullYear()))cnt[d.getUTCMonth()]++;});
+  filt.months=monthMS.set(cnt.map((n,i)=>({v:i,text:MONTHS_FULL[i],short:MONTHS_FULL[i].slice(0,3),n})).filter(o=>o.n),filt.months);
+}
+function fillYearOpts(){
+  const yc=new Map();orders.forEach(o=>{const y=new Date(o.od).getUTCFullYear();yc.set(y,(yc.get(y)||0)+1);});
+  filt.years=yearMS.set([...yc.entries()].sort((a,b)=>a[0]-b[0]).map(([y,n])=>({v:y,text:String(y),short:String(y),n})),filt.years);
+}
 function fillFilters(){
   const cnt=new Map();orders.forEach(o=>cnt.set(o.cat,(cnt.get(o.cat)||0)+1));
   const cats=[...cnt.entries()].sort((a,b)=>b[1]-a[1]);
   $('#fCat').innerHTML='<option value="">All Categories</option>'+cats.map(([c,n])=>`<option value="${esc(c)}">${esc(c)} (${n})</option>`).join('');
   const ms=[...new Set(orders.map(o=>monthKey(o.od)))].sort((a,b)=>a-b);
   $('#fMonth').innerHTML='<option value="">All Months</option>'+ms.map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
-  const yc=new Map();orders.forEach(o=>{const y=new Date(o.od).getUTCFullYear();yc.set(y,(yc.get(y)||0)+1);});
-  $('#fYear').innerHTML='<option value="">All Years</option>'+[...yc.entries()].sort((a,b)=>a[0]-b[0]).map(([y,n])=>`<option value="${y}">${y} (${n})</option>`).join('');
+  fillYearOpts();
+  fillMonthOpts();
   $('#fStatus').value='';
 }
 function drawTopDays(){
@@ -1127,11 +1181,13 @@ $('#q').oninput=renderAll;
 $('#fMonth').onchange=renderAll;$('#fStatus').onchange=renderAll;
 $('#btnClear').onclick=()=>{$('#q').value='';$('#fMonth').value='';$('#fStatus').value='';renderAll();};
 $('#fCat').onchange=e=>{filt.cat=e.target.value;render();};
-$('#fYear').onchange=e=>{filt.year=e.target.value===''?'':+e.target.value;render();};
+yearMS=makeMulti($('#fYear'),'All Years','Years',s=>{filt.years=s;fillMonthOpts();render();});
+monthMS=makeMulti($('#fMon'),'All Months','Months',s=>{filt.months=s;render();});
+document.addEventListener('click',()=>MS_ALL.forEach(m=>m.close()));
 const numOrNull=v=>{const x=parseFloat(v);return isNaN(x)?null:x;};
 $('#fMin').oninput=e=>{filt.min=numOrNull(e.target.value);render();};
 $('#fMax').oninput=e=>{filt.max=numOrNull(e.target.value);render();};
-$('#fReset').onclick=()=>{filt.year='';filt.cat='';filt.min=null;filt.max=null;$('#fYear').value='';$('#fCat').value='';$('#fMin').value='';$('#fMax').value='';render();};
+$('#fReset').onclick=()=>{filt.years=[];filt.months=[];fillYearOpts();fillMonthOpts();filt.cat='';filt.min=null;filt.max=null;$('#fCat').value='';$('#fMin').value='';$('#fMax').value='';render();};
 $('#tdDay').onchange=e=>{tdState.day=e.target.value;drawTopDays();};
 $('#tdN').onchange=e=>{tdState.n=+e.target.value;drawTopDays();};
 $('#btnCsv').onclick=()=>{
@@ -1172,6 +1228,5 @@ let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>window.
   finish(msgs,added);
 })();
 </script>
-
 </body>
 </html>
