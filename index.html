@@ -98,6 +98,7 @@ th:first-child,td:first-child{text-align:left}
 th{font-size:13px;color:var(--text2);font-weight:650;background:var(--surface2);position:sticky;top:0;z-index:1}
 tbody tr:hover td,table tr:not(:first-child):hover td{background:var(--surface2)}
 tr.tot td{font-weight:650;border-top:2px solid var(--line)}
+.cxn{color:var(--text2);font-weight:400}
 .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--rc)}
 .tall{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:var(--rc)}
 .tall table td{border-bottom-color:var(--grid)}
@@ -373,7 +374,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="card">
     <h2>Orders by Month</h2>
-    <p class="note">Grouped by order date. “Shipped” shows how many of that month's orders have a ship date.</p>
+    <p class="note">Grouped by order date. “Shipped” shows how many of that month's orders, including cancelled ones, have a ship date.</p>
     <div class="chart" id="chMonth"></div>
     <div class="tscroll"><table id="monthTable"></table></div>
   </div>
@@ -555,6 +556,7 @@ const TIPS={
   'Forecast Peak':'The highest rolling value in the days ahead, counting your forecast items.',
   'Forecast Over Limit On':'The first day ahead when your forecast items would push you over the limit.',
   'Taxable Percentage':'The share of your order value treated as taxable income. Change it in the field above.',
+  'Shipped':'Orders from that month that have a ship date, out of all orders placed that month including cancelled ones. Cancelled orders never ship, so they lower this number. Orders, % of Orders and Est. Tax Value count active orders only.',
   'Day':'The day of the week. Each row summarizes every order you placed on that weekday.',
   'Next Date':'The next calendar date that falls on this weekday. Today means it is that day now.',
   'Rank':'Order of the weekdays from best to worst, based on average order value per day. Ranking leans toward your overall average when a weekday has little data, so one lucky day does not take the top spot. The top three are highlighted.',
@@ -1674,11 +1676,13 @@ function render(){
   const mm=new Map();
   active.forEach(o=>{const k=monthKey(o.od);if(!mm.has(k))mm.set(k,[]);mm.get(k).push(o);});
   const mkeys=[...mm.keys()].sort((a,b)=>a-b);
+  const cxByMonth=new Map();cancelled.forEach(o=>{const k=monthKey(o.od);cxByMonth.set(k,(cxByMonth.get(k)||0)+1);});
+  const cxTxt=n=>n?` <span class="cxn">· ${n} cancelled</span>`:'';
   const maxE=Math.max(...mkeys.map(k=>sum(mm.get(k).map(o=>o.etv))),1);
-  $('#monthTable').innerHTML='<tr>'+sth('Month','numa')+sth('Orders')+sth('% of Orders')+sth('Est. Tax Value')+sth('Avg / Order')+sth('Shipped')+sth('Avg Days to Ship')+'</tr>'
+  $('#monthTable').innerHTML='<tr>'+sth('Month','numa')+sth('Orders')+sth('% of Orders')+sth('Est. Tax Value')+sth('Avg / Order')+sth('Shipped'+info('Shipped'))+sth('Avg Days to Ship')+'</tr>'
     +mkeys.map(k=>{const l=mm.get(k),s=stats(l),sh=l.map(shipDays).filter(x=>x!=null);
-      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv}">${money(s.etv)}<span class="bar" style="width:${Math.round(60*s.etv/maxE)}px"></span></td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
-    +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(st.etv)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
+      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv}">${money(s.etv)}<span class="bar" style="width:${Math.round(60*s.etv/maxE)}px"></span></td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n+(cxByMonth.get(k)||0)}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
+    +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(st.etv)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n+cancelled.length}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
 
   const ins=insights(active,days);
   limState=computeLimit(active);renderLimit();
