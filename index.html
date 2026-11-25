@@ -1646,7 +1646,6 @@ function render(){
   const ships=active.map(shipDays).filter(x=>x!=null);
   const spanWeeks=Math.max(1,days.length/7);
   const top=[...active].sort((a,b)=>b.etv-a.etv)[0];
-  const pending=active.filter(o=>o.sd==null).length;
   $('#kpis').innerHTML=[
     ['Total Orders',st.n,`${cancelled.length} cancelled (${pct(cancelled.length/(vis.length||1))})`],
     ['Total Est. Tax Value',money(st.etv),'sum of active orders'],
@@ -1654,7 +1653,6 @@ function render(){
     ['Avg Days to Ship',ships.length?avg(ships).toFixed(1):'N/A',ships.length?`median ${median(ships)} · max ${Math.max(...ships)}`:''],
     ['Orders per Week',(st.n/spanWeeks).toFixed(1),`over ${spanWeeks.toFixed(1)} weeks`],
     ['Largest Item',top?money(top.etv):'N/A',top?pn(top.name):''],
-    ['Not Yet Shipped',pending,pending?'awaiting ship date':'all shipped'],
   ].map(k=>`<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
 
   const age=o=>Math.floor((refMs-o.od)/DAY);
@@ -1726,8 +1724,7 @@ function render(){
   const big=active.filter(o=>o.etv>=100);
   if(big.length)hl.push(`${big.length} ${big.length===1?'item is':'items are'} valued at $100 or more, making up ${pct(sum(big.map(o=>o.etv))/(st.etv||1))} of total value.`);
   if(cancelled.length)hl.push(`${cancelled.length} cancelled ${cancelled.length===1?'order':'orders'} (${money(Math.abs(sum(cancelled.map(o=>o.etv))))} removed), ${pct(cancelled.length/((vis.length)||1))} of all orders.`);
-  const unshipped=active.filter(o=>o.sd==null).length;
-  if(ships.length)hl.push(`Shipping averages <b>${avg(ships).toFixed(1)} days</b> from order to ship`+(unshipped?`; ${unshipped} ${unshipped===1?'item has':'items have'} not shipped yet.`:'; every item has shipped.'));
+  if(ships.length)hl.push(`Shipping averages <b>${avg(ships).toFixed(1)} days</b> from order to ship.`);
   if(bestMonth)hl.push(`Busiest month: <b>${monthLabel(bestMonth[0])}</b> with ${bestMonth[1].n} orders (${money(bestMonth[1].etv)}).`);
   if(byDow&&byDow[1]>0)hl.push(`Most orders are placed on <b>${byDow[0]}</b> (${byDow[1]} orders).`);
   hl.push(`The 10 highest-value items make up <b>${pct(top10/(st.etv||1))}</b> of total value (${money(top10)}).`);
