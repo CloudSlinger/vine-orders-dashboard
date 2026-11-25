@@ -146,6 +146,7 @@ td.trunc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .callout.over,.fcmsg:not(:empty),#emptyMsg.err{--ac:#cc0c39;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%23cc0c39'/><rect x='9' y='4.5' width='2' height='7' rx='1' fill='%23fff'/><circle cx='10' cy='14.6' r='1.3' fill='%23fff'/></svg>")}
 .callout.ok{--ac:#1d9a1d;--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%231d9a1d'/><path d='M5.5 10.3l3 3 6-6.3' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>")}
 .fcmsg:empty{display:none}
+#fcDup:empty{display:none}#fcDup{margin:12px 0}#fcDup button{margin-left:10px;vertical-align:baseline}
 .fcmsg:not(:empty){margin:12px 0 0}
 #emptyMsg.err{margin:12px 0 0}
 .callout b{color:var(--text)}
@@ -307,7 +308,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="card" id="fcCard">
     <h2>Forecast Items<span class="info" role="button" tabindex="0" data-i="forecast" aria-label="More information"></span></h2>
-    <p class="note">Add items you expect to order but have not shipped yet. Forecast items count in the Taxable Value Limit Tracker, the Order Quantity Limit Tracker and the Quarterly Estimated Tax Payments, and nowhere else, so you can see how planned orders would change your limits and your tax. With Shipped Items Only selected, a forecast item counts only if it has a ship date estimate.</p>
+    <p class="note">Add items you expect to order but have not shipped yet. Forecast items count in the Taxable Value Limit Tracker, the Order Quantity Limit Tracker and the Quarterly Estimated Tax Payments, and nowhere else, so you can see how planned orders would change your limits and your tax.</p>
     <div class="frow">
       <label>Product Name<input id="fcName" type="text" placeholder="Product name" maxlength="300"></label>
       <label>ASIN (Optional)<input id="fcAsin" type="text" placeholder="B0XXXXXXXX" maxlength="20"></label>
@@ -318,6 +319,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
     </div>
     <div class="fcmsg" id="fcMsg" role="alert"></div>
     <label class="fcchk"><input type="checkbox" id="fcOn" checked>Include forecast items in the trackers and tax</label>
+    <div class="callout near" id="fcDup" role="status"></div>
     <div class="tscroll"><table id="fcTable"></table></div>
   </div>
 
@@ -327,7 +329,6 @@ th.s.desc::after{content:" \25BC";opacity:1}
     <div class="frow" style="margin-bottom:16px">
       <label>Taxable Value Limit ($)<input id="limVal" type="number" min="0" step="100" placeholder="For example 2000"></label>
       <label><span>Window (Days)<span class="info" role="button" tabindex="0" data-i="window" aria-label="More information"></span></span><input id="limWin" type="number" min="1" max="365" step="1" value="30"></label>
-      <label><span>Items Counted<span class="info" role="button" tabindex="0" data-i="items" aria-label="More information"></span></span><select id="limShip"><option value="all">All Items</option><option value="shipped">Shipped Items Only</option></select></label>
       <label><span>Warn At (% Of Limit)<span class="info" role="button" tabindex="0" data-i="limwarn" aria-label="More information"></span></span><input id="limWarn" type="number" min="1" max="100" step="1" value="80"></label>
       <button id="limClear">Clear Limit</button>
     </div>
@@ -346,7 +347,6 @@ th.s.desc::after{content:" \25BC";opacity:1}
       <label>Maximum Orders<input id="ovThr" type="number" min="1" step="1" placeholder="For example 200"></label>
       <label><span>Window (Days)<span class="info" role="button" tabindex="0" data-i="window" aria-label="More information"></span></span><input id="ovWin" type="number" min="1" max="365" step="1" value="30"></label>
       <label><span>Warn At (% Of Limit)<span class="info" role="button" tabindex="0" data-i="warn" aria-label="More information"></span></span><input id="ovWarn" type="number" min="1" max="100" step="1" value="80"></label>
-      <label><span>Items Counted<span class="info" role="button" tabindex="0" data-i="items" aria-label="More information"></span></span><select id="ovShip"><option value="all">All Items</option><option value="shipped">Shipped Items Only</option></select></label>
       <button id="ovClear">Clear Limit</button>
     </div>
     <div class="callout" id="ovNote"></div>
@@ -543,7 +543,6 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const TIPS={
   count:'The as-of date for the 30, 60, 90 and 180 day totals and for both limit trackers. Today uses the current date. Latest Order uses the date of your newest order.',
   window:'The number of days counted in each rolling total.',
-  items:'All Items counts every order. Shipped Items Only counts only items that have a ship date. Forecast items count in Shipped Items Only only if they have a ship date estimate.',
   limwarn:'Shows a warning once your rolling taxable value reaches this percent of your limit. A dotted line on the chart marks the warning level.',
   warn:'Shows a warning once your rolling order count reaches this percent of your limit.',
   taxpct:'The share of your order value treated as taxable income. The estimated tax is order value multiplied by this percentage.',
@@ -975,7 +974,7 @@ function computeLimit(active){
   const lim=parseFloat($('#limVal').value);
   const w=Math.max(1,Math.min(365,Math.round(parseFloat($('#limWin').value)||30)));
   const has=!isNaN(lim)&&lim>0,warnPct=Math.max(1,Math.min(100,parseFloat($('#limWarn').value)||80));
-  const shippedOnly=$('#limShip').value==='shipped';
+  const shippedOnly=false;
   const fcs=forecastOrders(),upto=active.concat(fcs).filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
   const fut=fcs.filter(o=>o.od>refMs&&(!shippedOnly||o.sd!=null));
   if(!used.length)return{has,lim,w,warnPct,shippedOnly,empty:true,pts:[],periods:[],nHist:0};
@@ -1021,7 +1020,7 @@ function renderLimit(){
   }
   const asOf=fmtDate(refMs),n=L.nHist,ongoing=L.periods.find(p=>p.ongoing);
   const tiles=[[`Rolling ${w}-Day Total`,money(L.cur),`as of ${asOf}`+(L.shippedOnly?', shipped items only':'')]];
-  tiles.push(['Orders Counted',String(L.nUsed),L.shippedOnly?`of ${L.nUpto} orders, ${L.nPending} not shipped yet`:`${L.nPending} not shipped yet, still counted`]);
+  tiles.push(['Orders Counted',String(L.nUsed),`on or before ${asOf}`]);
   tiles.push(['Limit',L.has?money(L.lim):'Not Set',L.has?'your taxable value limit':'enter a limit above']);
   tiles.push(L.has?(L.cur>L.lim?['Over By',money(L.cur-L.lim),'above the limit']:['Headroom',money(L.lim-L.cur),'left before the limit']):['Headroom','N/A','set a limit']);
   const lwarn=L.has?L.lim*L.warnPct/100:0,lnear=L.has&&!ongoing&&L.cur>=lwarn;
@@ -1128,13 +1127,25 @@ function fcResetForm(){
   $('#fcOd').value=isoDate(todayMs());
   $('#fcMsg').textContent='';
 }
+function fcMatches(){
+  const m=new Map();
+  if(!orders||!orders.length)return m;
+  fcItems.forEach(i=>{
+    const a=(i.asin||'').trim().toUpperCase();if(!a)return;
+    const hit=orders.filter(o=>!o.cx&&String(o.asin||'').trim().toUpperCase()===a&&o.od>=i.od).sort((x,y)=>x.od-y.od)[0];
+    if(hit)m.set(i.id,hit);
+  });
+  return m;
+}
 function renderForecast(){
+  const fm=fcMatches(),fd=$('#fcDup');
+  fd.innerHTML=fm.size?`<b>${fm.size===1?'1 forecast item already appears':fm.size+' forecast items already appear'} in your report</b> and may be counted twice. Hover the In Report badge to see the matching order. <button id="fcDupRm">Remove ${fm.size===1?'Match':'Matches'}</button>`:'';
   const list=[...fcItems].sort((a,b)=>a.od-b.od||a.name.localeCompare(b.name));
   const head='<tr><th style="text-align:left">Product Name</th><th>ASIN</th><th>Order Date</th><th>Ship Date (Estimate)</th><th>Value</th><th></th></tr>';
   if(!list.length){$('#fcTable').innerHTML=head+'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No forecast items yet. Add one above.</td></tr>';return;}
   $('#fcTable').innerHTML=head+list.map(i=>i.id===fcEditId
     ?`<tr class="editing"><td class="name"><input data-f="name" type="text" maxlength="300" value="${esc(i.name)}" aria-label="Product name"></td><td><input data-f="asin" type="text" maxlength="20" value="${esc(i.asin||'')}" aria-label="ASIN"></td><td><input data-f="od" type="date" value="${isoDate(i.od)}" aria-label="Order date"></td><td><input data-f="sd" type="date" value="${i.sd!=null?isoDate(i.sd):''}" aria-label="Ship date estimate"></td><td><input data-f="val" type="number" min="0" step="0.01" value="${i.val}" aria-label="Value"></td><td><div class="fcact"><button data-act="save" data-id="${esc(i.id)}">Save</button><button data-act="cancel" data-id="${esc(i.id)}">Cancel</button></div></td></tr>`
-    :`<tr><td class="name">${pn(i.name)}</td><td>${esc(i.asin||'')||'N/A'}</td><td>${fmtDate(i.od)}</td><td>${i.sd!=null?fmtDate(i.sd):'Not Set'}</td><td>${money(i.val)}</td><td><div class="fcact"><button data-act="edit" data-id="${esc(i.id)}">Edit</button><button data-act="del" data-id="${esc(i.id)}">Delete</button></div></td></tr>`).join('')
+    :`<tr><td class="name">${pn(i.name)}${fm.has(i.id)?` <span class="badge warn" title="${esc('Matching order '+fm.get(i.id).num+' placed '+fmtDate(fm.get(i.id).od))}">In Report</span>`:''}</td><td>${esc(i.asin||'')||'N/A'}</td><td>${fmtDate(i.od)}</td><td>${i.sd!=null?fmtDate(i.sd):'Not Set'}</td><td>${money(i.val)}</td><td><div class="fcact"><button data-act="edit" data-id="${esc(i.id)}">Edit</button><button data-act="del" data-id="${esc(i.id)}">Delete</button></div></td></tr>`).join('')
     +`<tr class="tot"><td style="text-align:left">Total (${list.length} ${list.length===1?'item':'items'})</td><td></td><td></td><td></td><td>${money(sum(list.map(i=>i.val)))}</td><td></td></tr>`;
 }
 function fcSubmit(){
@@ -1152,6 +1163,12 @@ function fcSubmit(){
   $('#fcName').focus();
 }
 $('#fcAdd').onclick=fcSubmit;
+$('#fcDup').addEventListener('click',e=>{
+  if(!e.target.closest('#fcDupRm'))return;
+  const fm=fcMatches();fcItems=fcItems.filter(i=>!fm.has(i.id));
+  if(fcEditId&&!fcItems.some(i=>i.id===fcEditId))fcEditId=null;
+  fcSave();renderForecast();render();
+});
 function fcRowErr(tr,field,text){
   tr.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
   tr.querySelectorAll('.fcerrtxt').forEach(x=>x.remove());
@@ -1203,16 +1220,15 @@ fcLoad();fcResetForm();renderForecast();
 $('#limVal').oninput=()=>{try{localStorage.setItem('vine-limit',$('#limVal').value);}catch(e){}render();};
 $('#limWin').oninput=()=>{try{localStorage.setItem('vine-limwin',$('#limWin').value);}catch(e){}render();};
 $('#limWarn').oninput=()=>{try{localStorage.setItem('vine-limwarn',$('#limWarn').value);}catch(e){}render();};
-$('#limShip').onchange=()=>{try{localStorage.setItem('vine-limship',$('#limShip').value);}catch(e){}render();};
 $('#limClear').onclick=()=>{$('#limVal').value='';try{localStorage.removeItem('vine-limit');}catch(e){}render();};
-try{const sv=localStorage.getItem('vine-limit'),sw=localStorage.getItem('vine-limwin');if(sv)$('#limVal').value=sv;if(sw)$('#limWin').value=sw;const sx=localStorage.getItem('vine-limwarn');if(sx)$('#limWarn').value=sx;const ss=localStorage.getItem('vine-limship');if(ss==='shipped'||ss==='all')$('#limShip').value=ss;}catch(e){}
+try{const sv=localStorage.getItem('vine-limit'),sw=localStorage.getItem('vine-limwin');if(sv)$('#limVal').value=sv;if(sw)$('#limWin').value=sw;const sx=localStorage.getItem('vine-limwarn');if(sx)$('#limWarn').value=sx;}catch(e){}
 
 let volState=null;
 function volWindow(){return Math.max(1,Math.min(365,Math.round(parseFloat($('#ovWin').value)||30)));}
 function computeVolume(active){
   const lim=parseFloat($('#ovThr').value),has=!isNaN(lim)&&lim>0;
   const w=volWindow(),warnPct=Math.max(1,Math.min(100,parseFloat($('#ovWarn').value)||80));
-  const shippedOnly=$('#ovShip').value==='shipped';
+  const shippedOnly=false;
   const fcs=forecastOrders(),upto=active.concat(fcs).filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
   const fut=fcs.filter(o=>o.od>refMs&&(!shippedOnly||o.sd!=null));
   const base={has,lim,w,warnPct,shippedOnly,nUsed:used.length,nUpto,nPending,pts:[],periods:[],nHist:0};
@@ -1292,7 +1308,7 @@ function renderVolume(){
     tiles.push(['Forecast Peak',String(V.fpk.v),`on ${fmtDate(V.fpk.t)} with forecast items`]);
     if(V.has)tiles.push(['Forecast Over Limit On',V.fover?fmtDate(V.fover.t):'Stays Under',V.fover?`${V.fover.v-V.lim} ${V.fover.v-V.lim===1?'order':'orders'} over the limit`:'through the forecast window']);
   }
-  tiles.push(['Orders Counted',String(V.nUsed),V.shippedOnly?`of ${V.nUpto} orders, ${V.nPending} not shipped yet`:`${V.nPending} not shipped yet, still counted`]);
+  tiles.push(['Orders Counted',String(V.nUsed),`on or before ${asOf}`]);
   const paceDate=V.paceHit!=null?fmtDate(pts[nh-1+V.paceHit].t):null;
   let note;
   if(!V.has)note='Enter a maximum number of orders above to get warnings before you reach it and to see when your rolling count goes over it.';
@@ -1379,12 +1395,10 @@ function volumeChart(){
 }
 $('#ovThr').oninput=()=>{try{localStorage.setItem('vine-ovThr',$('#ovThr').value);}catch(e){}render();};
 ['ovWin','ovWarn'].forEach(id=>{$('#'+id).oninput=()=>{try{localStorage.setItem('vine-'+id,$('#'+id).value);}catch(e){}render();};});
-$('#ovShip').onchange=()=>{try{localStorage.setItem('vine-ovShip',$('#ovShip').value);}catch(e){}render();};
 $('#ovClear').onclick=()=>{$('#ovThr').value='';try{localStorage.removeItem('vine-ovThr');}catch(e){}render();};
 try{
   const v=localStorage.getItem('vine-ovThr');if(v)$('#ovThr').value=v;
   ['ovWin','ovWarn'].forEach(id=>{const x=localStorage.getItem('vine-'+id);if(x)$('#'+id).value=x;});
-  const sh=localStorage.getItem('vine-ovShip');if(sh==='shipped'||sh==='all')$('#ovShip').value=sh;
 }catch(e){}
 
 let taxState=null;
@@ -1644,6 +1658,7 @@ function render(){
   const minD=Math.min(...orders.map(o=>o.od)),maxD=Math.max(...orders.map(o=>o.od));
   $('#subtitle').textContent=`${orders.length} orders · ${fmtDate(minD)} to ${fmtDate(maxD)} · ${datasets.length} report${datasets.length===1?'':'s'}`;
 
+  if(fcEditId==null)renderForecast();
   const st=stats(active);
   const ships=active.map(shipDays).filter(x=>x!=null);
   const spanWeeks=Math.max(1,days.length/7);
