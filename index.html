@@ -309,10 +309,10 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="card" id="fcCard">
     <h2>Forecast Items<span class="info" role="button" tabindex="0" data-i="forecast" aria-label="More information"></span></h2>
-    <p class="note">Add items you expect to order but have not shipped yet. Forecast items count in the Taxable Value Limit Tracker, the Order Quantity Limit Tracker and the Quarterly Estimated Tax Payments, and nowhere else, so you can see how planned orders would change your limits and your tax.</p>
+    <p class="note">Add items you expect to order but have not shipped yet. Paste an Amazon product link into ASIN and it is filled in for you. The product name is optional. Forecast items count in the Taxable Value Limit Tracker, the Order Quantity Limit Tracker and the Quarterly Estimated Tax Payments, and nowhere else, so you can see how planned orders would change your limits and your tax.</p>
     <div class="frow">
-      <label>Product Name<input id="fcName" type="text" placeholder="Product name" maxlength="300"></label>
-      <label>ASIN (Optional)<input id="fcAsin" type="text" placeholder="B0XXXXXXXX" maxlength="20"></label>
+      <label>ASIN<input id="fcAsin" type="text" placeholder="Paste Amazon link or ASIN" autocomplete="off" required></label>
+      <label>Product Name (Optional)<input id="fcName" type="text" placeholder="Product name" maxlength="300"></label>
       <label>Order Date<input id="fcOd" type="date"></label>
       <label>Ship Date (Estimate)<input id="fcSd" type="date"></label>
       <label>Value ($)<input id="fcVal" type="number" min="0" step="0.01" placeholder="0.00"></label>
@@ -1134,7 +1134,7 @@ function fcMatches(){
   if(!orders||!orders.length)return m;
   fcItems.forEach(i=>{
     const a=(i.asin||'').trim().toUpperCase();if(!a)return;
-    const hit=orders.filter(o=>!o.cx&&String(o.asin||'').trim().toUpperCase()===a&&o.od>=i.od).sort((x,y)=>x.od-y.od)[0];
+    const hit=orders.filter(o=>!o.cx&&String(o.asin||'').trim().toUpperCase()===a).sort((x,y)=>x.od-y.od)[0];
     if(hit)m.set(i.id,hit);
   });
   return m;
@@ -1146,17 +1146,25 @@ function renderForecast(){
   const head='<tr><th style="text-align:left">Product Name</th><th>ASIN</th><th>Order Date</th><th>Ship Date (Estimate)</th><th>Value</th><th></th></tr>';
   if(!list.length){$('#fcTable').innerHTML=head+'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No forecast items yet. Add one above.</td></tr>';return;}
   $('#fcTable').innerHTML=head+list.map(i=>i.id===fcEditId
-    ?`<tr class="editing"><td class="name"><input data-f="name" type="text" maxlength="300" value="${esc(i.name)}" aria-label="Product name"></td><td><input data-f="asin" type="text" maxlength="20" value="${esc(i.asin||'')}" aria-label="ASIN"></td><td><input data-f="od" type="date" value="${isoDate(i.od)}" aria-label="Order date"></td><td><input data-f="sd" type="date" value="${i.sd!=null?isoDate(i.sd):''}" aria-label="Ship date estimate"></td><td><input data-f="val" type="number" min="0" step="0.01" value="${i.val}" aria-label="Value"></td><td><div class="fcact"><button data-act="save" data-id="${esc(i.id)}">Save</button><button data-act="cancel" data-id="${esc(i.id)}">Cancel</button></div></td></tr>`
+    ?`<tr class="editing"><td class="name"><input data-f="name" type="text" maxlength="300" value="${esc(i.name)}" aria-label="Product name"></td><td><input data-f="asin" type="text" value="${esc(i.asin||'')}" aria-label="ASIN"></td><td><input data-f="od" type="date" value="${isoDate(i.od)}" aria-label="Order date"></td><td><input data-f="sd" type="date" value="${i.sd!=null?isoDate(i.sd):''}" aria-label="Ship date estimate"></td><td><input data-f="val" type="number" min="0" step="0.01" value="${i.val}" aria-label="Value"></td><td><div class="fcact"><button data-act="save" data-id="${esc(i.id)}">Save</button><button data-act="cancel" data-id="${esc(i.id)}">Cancel</button></div></td></tr>`
     :`<tr><td class="name">${pn(i.name)}${fm.has(i.id)?` <span class="badge warn" title="${esc('Matching order '+fm.get(i.id).num+' placed '+fmtDate(fm.get(i.id).od))}">In Report</span>`:''}</td><td>${esc(i.asin||'')||'N/A'}</td><td>${fmtDate(i.od)}</td><td>${i.sd!=null?fmtDate(i.sd):'Not Set'}</td><td>${money(i.val)}</td><td><div class="fcact"><button data-act="edit" data-id="${esc(i.id)}">Edit</button><button data-act="del" data-id="${esc(i.id)}">Delete</button></div></td></tr>`).join('')
     +`<tr class="tot"><td style="text-align:left">Total (${list.length} ${list.length===1?'item':'items'})</td><td></td><td></td><td></td><td>${money(sum(list.map(i=>i.val)))}</td><td></td></tr>`;
 }
+function inReport(asin){
+  if(!asin||!orders||!orders.length)return null;
+  return orders.filter(o=>!o.cx&&String(o.asin||'').trim().toUpperCase()===asin).sort((x,y)=>x.od-y.od)[0]||null;
+}
 function fcSubmit(){
-  const name=$('#fcName').value.trim(),asin=$('#fcAsin').value.trim().toUpperCase(),od=parseDate($('#fcOd').value),sd=parseDate($('#fcSd').value),raw=$('#fcVal').value.trim(),val=parseFloat(raw);
+  const nameIn=$('#fcName').value.trim(),asin=$('#fcAsin').value.trim().toUpperCase(),od=parseDate($('#fcOd').value),sd=parseDate($('#fcSd').value),raw=$('#fcVal').value.trim(),val=parseFloat(raw);
   const msg=$('#fcMsg');
-  if(!name){msg.textContent='Enter a product name.';$('#fcName').focus();return;}
+  if(!asin){msg.textContent='Enter an ASIN or paste an Amazon product link.';$('#fcAsin').focus();return;}
+  if(!/^[A-Z0-9]{10}$/.test(asin)){msg.textContent='An ASIN is 10 letters and numbers, like B0HC6MZBCC. You can also paste the Amazon product link.';$('#fcAsin').focus();return;}
   if(od==null){msg.textContent='Enter an order date.';$('#fcOd').focus();return;}
   if(raw===''||isNaN(val)||val<0){msg.textContent='Enter a value of $0 or more.';$('#fcVal').focus();return;}
   if(sd!=null&&sd<od){msg.textContent='The ship date estimate cannot be before the order date.';$('#fcSd').focus();return;}
+  const name=nameIn||('Item '+asin);
+  if(asin){const d=fcItems.find(i=>(i.asin||'').toUpperCase()===asin);if(d){msg.textContent='This ASIN is already in your forecast list ('+d.name.slice(0,60)+(d.name.length>60?'…':'')+'). Vine does not allow ordering the same item twice, so edit or delete the existing item instead.';$('#fcAsin').focus();return;}}
+  {const h=inReport(asin);if(h){msg.textContent='This ASIN is already in your report (order '+h.num+', placed '+fmtDate(h.od)+'). Vine does not allow ordering the same item twice, so it cannot be added as a forecast item.';$('#fcAsin').focus();return;}}
   fcItems.push({id:fcId(),name,asin,od,sd,val});
   const keepOd=$('#fcOd').value,keepSd=$('#fcSd').value;
   fcResetForm();
@@ -1164,6 +1172,44 @@ function fcSubmit(){
   fcSave();renderForecast();render();
   $('#fcName').focus();
 }
+function parseAmazonUrl(t){
+  t=String(t||'').trim();
+  if(!/^(https?:\/\/|www\.)\S*amazon\.|^\S*amazon\.[a-z.]+\//i.test(t))return null;
+  const m=t.match(/\/(?:dp|gp\/product|gp\/aw\/d|gp\/offer-listing|product|exec\/obidos\/ASIN|d)\/([A-Z0-9]{10})(?=[/?#&]|$)/i)||t.match(/[?&]asin=([A-Z0-9]{10})(?=[&#]|$)/i);
+  if(!m)return null;
+  let name='';
+  const sl=t.match(/amazon\.[a-z.]+\/([^/?#]+)\/(?:dp|gp\/product)\//i);
+  if(sl&&!/^(gp|dp|product|d)$/i.test(sl[1])){try{name=decodeURIComponent(sl[1]).replace(/-+/g,' ').trim();}catch(e){}}
+  return{asin:m[1].toUpperCase(),name};
+}
+function fcLink(asinEl,nameEl){
+  const r=parseAmazonUrl(asinEl.value);
+  if(!r)return false;
+  asinEl.value=r.asin;
+  if(!nameEl.value.trim()&&r.name)nameEl.value=r.name;
+  asinEl.classList.remove('bad');
+  const msg=$('#fcMsg');if(msg)msg.textContent='';
+  nameEl.focus();
+  return true;
+}
+$('#fcAsin').addEventListener('input',()=>fcLink($('#fcAsin'),$('#fcName')));
+$('#fcTable').addEventListener('input',e=>{
+  const tr=e.target.closest&&e.target.closest('tr.editing');if(!tr)return;
+  if(!e.target.dataset||e.target.dataset.f!=='asin')return;
+  fcLink(tr.querySelector('[data-f=asin]'),tr.querySelector('[data-f=name]'));
+});
+const MONEY_IN='#fMin,#fMax,#fcVal,#limVal,[data-f=val]';
+const cleanMoney=t=>{let c=String(t).trim().replace(/[$,\s]/g,'').replace(/^\((.*)\)$/,'-$1');return /^-?\d*\.?\d*$/.test(c)?c:null;};
+document.addEventListener('paste',e=>{
+  const el=e.target;if(!el||!el.matches||!el.matches(MONEY_IN))return;
+  const raw=(e.clipboardData||window.clipboardData).getData('text'),c=cleanMoney(raw);
+  if(c===null||c===String(raw).trim())return;
+  e.preventDefault();el.value=c;el.dispatchEvent(new Event('input',{bubbles:true}));
+},true);
+document.addEventListener('keydown',e=>{
+  const el=e.target;if(!el||!el.matches||!el.matches(MONEY_IN)||e.ctrlKey||e.metaKey)return;
+  if(e.key==='$'||e.key===',')e.preventDefault();
+},true);
 $('#fcAdd').onclick=fcSubmit;
 $('#fcDup').addEventListener('click',e=>{
   if(!e.target.closest('#fcDupRm'))return;
@@ -1182,12 +1228,16 @@ function fcRowErr(tr,field,text){
 function fcRowSave(id){
   const tr=$('#fcTable tr.editing');if(!tr)return;
   const f=k=>tr.querySelector(`[data-f="${k}"]`);
-  const name=f('name').value.trim(),asin=f('asin').value.trim().toUpperCase(),od=parseDate(f('od').value),sd=parseDate(f('sd').value),raw=f('val').value.trim(),val=parseFloat(raw);
+  const nameIn=f('name').value.trim(),asin=f('asin').value.trim().toUpperCase(),od=parseDate(f('od').value),sd=parseDate(f('sd').value),raw=f('val').value.trim(),val=parseFloat(raw);
   fcRowErr(tr,null);
-  if(!name){fcRowErr(tr,f('name'),'Enter a name');return;}
+  const name=nameIn||('Item '+asin);
+  if(!asin){fcRowErr(tr,f('asin'),'Enter an ASIN');return;}
+  if(!/^[A-Z0-9]{10}$/.test(asin)){fcRowErr(tr,f('asin'),'10 letters/numbers');return;}
   if(od==null){fcRowErr(tr,f('od'),'Enter a date');return;}
   if(raw===''||isNaN(val)||val<0){fcRowErr(tr,f('val'),'Enter $0 or more');return;}
   if(sd!=null&&sd<od){fcRowErr(tr,f('sd'),'Not before order date');return;}
+  if(asin&&fcItems.some(i=>i.id!==id&&(i.asin||'').toUpperCase()===asin)){fcRowErr(tr,f('asin'),'Already in list');return;}
+  if(inReport(asin)){fcRowErr(tr,f('asin'),'Already in report');return;}
   const it=fcItems.find(i=>i.id===id);
   if(it){it.name=name;it.asin=asin;it.od=od;it.sd=sd;it.val=val;}
   fcEditId=null;
