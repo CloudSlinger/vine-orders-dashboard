@@ -456,9 +456,9 @@ th.s.desc::after{content:" \25BC";opacity:1}
   <p><b>Disclaimer.</b> All figures, including estimated tax values, taxable percentages, limit tracking and quarterly payment amounts, are calculated from the report data you load and are for estimation purposes only. Nothing here constitutes tax, legal, accounting or financial advice, and no guarantee is made about accuracy or completeness. Confirm amounts and deadlines with the IRS or a qualified tax professional before filing or paying. Not affiliated with or endorsed by Amazon.</p>
   <p><b>No Warranty.</b> This dashboard is provided "as is" and "as available," without warranties of any kind, express or implied, including accuracy, reliability, merchantability, fitness for a particular purpose and non-infringement. Calculations may contain errors, and report formats, tax rules, rates and due dates can change. Estimated payment dates follow published IRS schedules and may not reflect your situation, such as a different tax year, state or local taxes, or special rules.</p>
   <p><b>Limitation of Liability.</b> To the fullest extent permitted by law, the creators and distributors of this dashboard are not liable for any direct, indirect, incidental, consequential or other damages or losses, including penalties, interest, underpayment or overpayment of taxes, or lost income, arising from its use or from decisions made based on it. You are solely responsible for the accuracy of your tax filings and payments, and use of this dashboard does not create a professional relationship of any kind.</p>
-  <p><b>Privacy.</b> Your report files are read and processed locally in your browser. Only display preferences, such as theme, limit and taxable percentage, are saved in your browser's local storage on your own device.</p>
+  <p><b>Privacy.</b> Your report files are read and processed locally in your browser. Your loaded reports and your display preferences, such as theme, limits, forecast items and taxable percentage, are saved in your browser's local storage on your own device so they are still there after a refresh. Use Reset Everything below to erase them.</p>
   <p><b>Trademarks.</b> Amazon, Amazon Vine and related names and colors are trademarks of Amazon.com, Inc. or its affiliates and are used here only to describe the report format this tool reads. Other product names belong to their respective owners.</p>
-  <p class="resetrow"><button id="btnWipe" type="button"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.5 3-1.5 4.7-3.2 6.8C7 11 6 12.8 6 15a6 6 0 0 0 12 0c0-2.4-1.2-4-2.2-5.300-.3 1.400-1.100 2.300-2 2.700.8-3.700-.5-7.700-1.800-10.400z" fill="#e8590c"/><path d="M12 22a3.500 3.500 0 0 1-3.500-3.500c0-1.800 1.300-2.800 2.2-4 .3 1 .9 1.500 1.500 1.700.9-1 1.200-2 1.100-3.200 1.300 1 2.2 2.500 2.2 4.300A3.500 3.500 0 0 1 12 22z" fill="#ffc53d"/></svg>Reset Everything</button> <span>Clears every setting this dashboard saved in your browser (theme, limits, forecast items, paid tax payments, tile layout) and unloads your reports.</span></p>
+  <p class="resetrow"><button id="btnWipe" type="button"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.5 3-1.5 4.7-3.2 6.8C7 11 6 12.8 6 15a6 6 0 0 0 12 0c0-2.4-1.2-4-2.2-5.300-.3 1.400-1.100 2.300-2 2.700.8-3.700-.5-7.700-1.800-10.400z" fill="#e8590c"/><path d="M12 22a3.500 3.500 0 0 1-3.500-3.500c0-1.800 1.300-2.800 2.2-4 .3 1 .9 1.500 1.500 1.700.9-1 1.200-2 1.100-3.200 1.300 1 2.2 2.500 2.2 4.300A3.500 3.500 0 0 1 12 22z" fill="#ffc53d"/></svg>Reset Everything</button> <span>Erases everything this dashboard saved in your browser (loaded reports, theme, limits, forecast items, paid tax payments, tile layout) and returns to the file picker.</span></p>
 </footer>
 <div id="tip"></div>
 
@@ -681,6 +681,22 @@ async function parsePdf(buf,name){
   const ods=all.map(o=>o.od);
   return {name,title:ttl||name,orders:all,min:Math.min(...ods),max:Math.max(...ods)};
 }
+function persistData(){
+  try{
+    if(datasets.length)localStorage.setItem('vine-data',JSON.stringify(datasets));
+    else localStorage.removeItem('vine-data');
+  }catch(e){try{localStorage.removeItem('vine-data');}catch(_){}}
+}
+function restoreData(){
+  try{
+    const s=JSON.parse(localStorage.getItem('vine-data')||'null');
+    if(!Array.isArray(s)||!s.length)return false;
+    const ok=s.filter(d=>d&&typeof d.name==='string'&&Array.isArray(d.orders)&&d.orders.length&&isFinite(d.min)&&isFinite(d.max)&&d.orders.every(o=>o&&typeof o.od==='number'));
+    if(!ok.length)return false;
+    ok.forEach(d=>d.orders.forEach(o=>{o.num=String(o.num??'');o.asin=String(o.asin??'');o.name=String(o.name??'');o.type=String(o.type??'');}));
+    datasets=ok;rebuild();return true;
+  }catch(e){return false;}
+}
 function addDataset(ds){datasets=datasets.filter(d=>d.name!==ds.name);datasets.push(ds);datasets.sort((x,y)=>x.min-y.min);}
 function resetUI(){
   filt.years=[];filt.months=[];filt.cat='';filt.min=null;filt.max=null;tdState.day='';tdState.n=10;
@@ -714,7 +730,7 @@ function renderLoaded(){
   $('#loadNote').textContent=[...(dupCount?[`${dupCount} order${dupCount===1?'':'s'} appeared in more than one report and ${dupCount===1?'was':'were'} merged (ship and cancel dates are kept from whichever report has them).`]:[]),...warnings].join(' ');
 }
 function showEmpty(msg){
-  orders=[];datasets=[];warnings=[];
+  orders=[];datasets=[];warnings=[];persistData();
   document.body.classList.add('empty');
   const m=$('#emptyMsg');m.textContent=msg;m.classList.remove('err');
   $('#title').textContent='Vine Orders Dashboard';$('.eyebrow').textContent='Amazon Vine · Order Analytics';$('#subtitle').textContent='';
@@ -723,7 +739,7 @@ function fail(msg){const m=$('#emptyMsg');m.textContent=msg;m.classList.add('err
 function finish(msgs,added){
   warnings=msgs;
   if(!datasets.length){fail(msgs.join(' ')||'No reports were loaded.');return;}
-  if(added)rebuild();else renderLoaded();
+  if(added){persistData();rebuild();}else renderLoaded();
 }
 async function addFiles(list){
   const files=[...list].filter(f=>/\.(xlsx|xls|csv|pdf)$/i.test(f.name));
@@ -741,7 +757,7 @@ $('#btnPick').onclick=()=>$('#file').click();
 $('#btnClearAll').onclick=()=>showEmpty('Select your Vine reports to continue.');
 document.addEventListener('click',e=>{
   const x=e.target.closest&&e.target.closest('.chip .x');if(!x)return;
-  datasets.splice(+x.dataset.i,1);warnings=[];
+  datasets.splice(+x.dataset.i,1);warnings=[];persistData();
   datasets.length?rebuild():showEmpty('All reports were removed. Select your Vine reports to continue.');
 });
 const dropZone=$('#drop');
@@ -1900,7 +1916,7 @@ let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>window.
 (function(){
   let list=window.VINE_FILES||[];
   if(!list.length&&window.VINE_XLSX_B64)list=[{name:window.VINE_XLSX_NAME||'report.xlsx',b64:window.VINE_XLSX_B64}];
-  if(!list.length)return;
+  if(!list.length){restoreData();return;}
   const msgs=[];let added=0;
   list.forEach(f=>{
     try{
