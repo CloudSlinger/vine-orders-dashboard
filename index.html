@@ -889,15 +889,16 @@ function makeMulti(host,allText,noun,onChange){
 let yearMS=null,monthMS=null;
 function fillMonthOpts(){
   const cnt=new Array(12).fill(0);
-  orders.forEach(o=>{const d=new Date(o.od);if(!filt.years.length||filt.years.includes(d.getUTCFullYear()))cnt[d.getUTCMonth()]++;});
-  filt.months=monthMS.set(cnt.map((n,i)=>({v:i,text:MONTHS_FULL[i],short:MONTHS_FULL[i].slice(0,3),n})).filter(o=>o.n),filt.months);
+  const seen=new Array(12).fill(0);
+  orders.forEach(o=>{const d=new Date(o.od);if(!filt.years.length||filt.years.includes(d.getUTCFullYear())){seen[d.getUTCMonth()]++;if(!o.cx)cnt[d.getUTCMonth()]++;}});
+  filt.months=monthMS.set(cnt.map((n,i)=>({v:i,text:MONTHS_FULL[i],short:MONTHS_FULL[i].slice(0,3),n})).filter(o=>seen[o.v]),filt.months);
 }
 function fillYearOpts(){
-  const yc=new Map();orders.forEach(o=>{const y=new Date(o.od).getUTCFullYear();yc.set(y,(yc.get(y)||0)+1);});
+  const yc=new Map();orders.forEach(o=>{const y=new Date(o.od).getUTCFullYear();yc.set(y,(yc.get(y)||0)+(o.cx?0:1));});
   filt.years=yearMS.set([...yc.entries()].sort((a,b)=>a[0]-b[0]).map(([y,n])=>({v:y,text:String(y),short:String(y),n})),filt.years);
 }
 function fillFilters(){
-  const cnt=new Map();orders.forEach(o=>cnt.set(o.cat,(cnt.get(o.cat)||0)+1));
+  const cnt=new Map();orders.forEach(o=>cnt.set(o.cat,(cnt.get(o.cat)||0)+(o.cx?0:1)));
   const cats=[...cnt.entries()].sort((a,b)=>b[1]-a[1]);
   $('#fCat').innerHTML='<option value="">All Categories</option>'+cats.map(([c,n])=>`<option value="${esc(c)}">${esc(c)} (${n})</option>`).join('');
   const ms=[...new Set(orders.map(o=>monthKey(o.od)))].sort((a,b)=>a-b);
@@ -1744,7 +1745,7 @@ function render(){
   const spanWeeks=Math.max(1,days.length/7);
   const top=[...active].sort((a,b)=>b.etv-a.etv)[0];
   $('#kpis').innerHTML=[
-    ['Total Orders',st.n,`${cancelled.length} cancelled (${pct(cancelled.length/(vis.length||1))})`],
+    ['Total Orders',st.n,`excludes ${cancelled.length} cancelled (${pct(cancelled.length/(vis.length||1))})`],
     ['Total Est. Tax Value',money(st.etv),'sum of active orders'],
     ['Average per Order',money(st.avg),`median ${money(st.med)}`],
     ['Avg Days to Ship',ships.length?avg(ships).toFixed(1):'N/A',ships.length?`median ${median(ships)} · max ${Math.max(...ships)}`:''],
@@ -1841,7 +1842,7 @@ function render(){
   const cxCat=new Map();cancelled.forEach(o=>cxCat.set(o.cat,(cxCat.get(o.cat)||0)+1));
   const cxTop=[...cxCat.entries()].sort((a,b)=>b[1]-a[1])[0];
   $('#cxTiles').innerHTML=[
-    ['Cancelled Orders',cancelled.length,`out of ${vis.length} orders`],
+    ['Cancelled Orders',cancelled.length,`out of ${vis.length} orders placed`],
     ['Cancellation Rate',pct(cancelled.length/(vis.length||1)),`${cancelled.length} of ${vis.length}`],
     ['Value Cancelled',money(cxVal),'estimated tax value'],
     ['Avg Days to Cancel',cxKnown.length?avg(cxKnown).toFixed(1):'N/A',cancelled.length?'from order date to cancel date':'no cancellations'],
@@ -1853,7 +1854,7 @@ function render(){
   $('#cxBody').hidden=!cancelled.length;
   const cxm=new Map();
   vis.forEach(o=>{const k=monthKey(o.od);if(!cxm.has(k))cxm.set(k,{all:0,c:0,v:0});const m=cxm.get(k);m.all++;if(o.cx){m.c++;m.v+=o.etv;}});
-  $('#cxMonth').innerHTML='<tr>'+sth('Order Month','numa')+sth('Cancelled')+sth('Total Orders')+sth('Cancellation Rate')+sth('Value Cancelled')+'</tr>'
+  $('#cxMonth').innerHTML='<tr>'+sth('Order Month','numa')+sth('Cancelled')+sth('Orders Placed')+sth('Cancellation Rate')+sth('Value Cancelled')+'</tr>'
     +[...cxm.entries()].filter(([k,m])=>m.c>0).sort((a,b)=>a[0]-b[0]).map(([k,m])=>`<tr><td data-v="${k}">${monthLabel(k)}</td><td>${m.c}</td><td>${m.all}</td><td data-v="${m.c/m.all}">${pct(m.c/m.all)}</td><td data-v="${m.v}">${money(m.v)}</td></tr>`).join('');
   $('#cxTable').innerHTML='<tr>'+sth('Order Date','numa')+sth('Cancelled Date','numa')+sth('Days to Cancel')+sth('Product','str',true)+sth('Category','str',true)+sth('ASIN','str')+sth('Order #','str')+sth('Est. Tax Value')+'</tr>'
     +cancelled.map((o,i)=>({o,i})).sort((a,b)=>(b.o.cd??0)-(a.o.cd??0)).map(({o,i})=>`<tr><td data-v="${o.od}">${fmtDate(o.od)}</td><td data-v="${o.cd??0}">${o.cd!=null?fmtDate(o.cd):(esc(o.cdRaw)||'N/A')}</td><td data-v="${cxDays[i]??-9999}">${cxDays[i]??'N/A'}</td><td class="name" style="min-width:280px">${pn(o.name)}</td><td class="name" style="min-width:120px">${esc(o.cat)}</td><td>${esc(o.asin)}</td><td>${esc(o.num)}</td><td data-v="${o.etv}">${money(o.etv)}</td></tr>`).join('');
