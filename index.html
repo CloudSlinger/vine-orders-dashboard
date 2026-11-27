@@ -1019,18 +1019,19 @@ function insightCharts(ins){
 
 let limState=null;
 const fmtShort=ms=>{const d=new Date(ms);return `${d.getUTCMonth()+1}/${d.getUTCDate()}/${String(d.getUTCFullYear()).slice(2)}`;};
-function computeLimit(active){
+function computeLimit(active,cxs){
+  cxs=cxs||[];
   const lim=parseFloat($('#limVal').value);
   const w=Math.max(1,Math.min(365,Math.round(parseFloat($('#limWin').value)||30)));
   const has=!isNaN(lim)&&lim>0,warnPct=Math.max(1,Math.min(100,parseFloat($('#limWarn').value)||80));
   const shippedOnly=false;
-  const fcs=forecastOrders(),upto=active.concat(fcs).filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
+  const fcs=forecastOrders(),adj=cxs.filter(o=>o.od<=refMs),upto=active.concat(fcs).filter(o=>o.od<=refMs),used=upto.filter(o=>!shippedOnly||o.sd!=null),nUpto=upto.length,nPending=upto.filter(o=>o.sd==null).length;
   const fut=fcs.filter(o=>o.od>refMs&&(!shippedOnly||o.sd!=null));
   if(!used.length)return{has,lim,w,warnPct,shippedOnly,empty:true,pts:[],periods:[],nHist:0};
-  const start=Math.min(...used.map(o=>o.od)),n=Math.round((refMs-start)/DAY)+1;
+  const start=Math.min(...used.concat(adj).map(o=>o.od)),n=Math.round((refMs-start)/DAY)+1;
   const fk=fut.map(o=>Math.round((o.od-refMs)/DAY)),HZ=w+Math.min(365,fk.length?Math.max(...fk):0);
   const day=new Array(n+HZ).fill(0);
-  used.forEach(o=>{day[Math.round((o.od-start)/DAY)]+=o.etv;});
+  used.concat(adj).forEach(o=>{day[Math.round((o.od-start)/DAY)]+=o.etv;});
   fut.forEach((o,j)=>{if(fk[j]<=HZ)day[n-1+fk[j]]+=o.etv;});
   const pref=[0];for(let i=0;i<n+HZ;i++)pref.push(pref[i]+day[i]);
   const covDays=coverageDays(),cov=new Set(covDays),maxCov=covDays.length?covDays[covDays.length-1]:0;
@@ -1538,8 +1539,9 @@ function computeTax(){
     {q:'Q3',period:'Jun 1 to Aug 31',s:Date.UTC(y,5,1),e:Date.UTC(y,7,31),due:Date.UTC(y,8,15),dueA:nextBizDay(y,8,15)},
     {q:'Q4',period:'Sep 1 to Dec 31',s:Date.UTC(y,8,1),e:Date.UTC(y,11,31),due:Date.UTC(y+1,0,15),dueA:nextBizDay(y+1,0,15)}];
   const inYear=act.filter(o=>new Date(o.od).getUTCFullYear()===y).sort((a,b)=>a.od-b.od),fcY=inYear.filter(o=>o.fc);
-  defs.forEach(d=>{const l=inYear.filter(o=>o.od>=d.s&&o.od<=d.e);d.n=l.length;d.val=sum(l.map(o=>o.etv));d.tax=d.val*rate;});
-  const cum=[];let c=0;inYear.forEach(o=>{c+=o.etv;cum.push({t:o.od,v:c});});
+  const cxY=orders.filter(o=>o.cx&&o.od!=null&&new Date(o.od).getUTCFullYear()===y);
+  defs.forEach(d=>{const l=inYear.filter(o=>o.od>=d.s&&o.od<=d.e);d.n=l.length;d.val=sum(l.map(o=>o.etv))+sum(cxY.filter(o=>o.od>=d.s&&o.od<=d.e).map(o=>o.etv));d.tax=d.val*rate;});
+  const cum=[];let c=0;inYear.concat(cxY).sort((a,b)=>a.od-b.od).forEach(o=>{c+=o.etv;cum.push({t:o.od,v:c});});
   const totVal=sum(defs.map(d=>d.val)),today=new Date(),todayMs=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
   return{fcN:fcY.length,fcVal:sum(fcY.map(o=>o.etv)),years,y,rate,defs,cum,totVal,totTax:totVal*rate,todayMs,n:inYear.length,lastOd:inYear.length?inYear[inYear.length-1].od:null};
 }
@@ -1841,12 +1843,13 @@ function render(){
 
   if(fcEditId==null)renderForecast();
   const st=stats(active);
+  const cxv=f=>sum(cancelled.filter(f).map(o=>o.etv)),cxAll=cxv(()=>true),netTot=st.etv+cxAll;
   const ships=active.map(shipDays).filter(x=>x!=null);
   const spanWeeks=Math.max(1,days.length/7);
   const top=[...active].sort((a,b)=>b.etv-a.etv)[0];
   $('#kpis').innerHTML=[
     ['Total Orders',st.n,`excludes ${cancelled.length} cancelled (${pct(cancelled.length/(vis.length||1))})`],
-    ['Total Est. Tax Value',money(st.etv),'sum of active orders'],
+    ['Total Est. Tax Value',money(netTot),cancelled.length?`net of ${money(cxAll)} cancelled`:'sum of active orders'],
     ['Average per Order',money(st.avg),`median ${money(st.med)}`],
     ['Avg Days to Ship',ships.length?avg(ships).toFixed(1):'N/A',ships.length?`median ${median(ships)} · max ${Math.max(...ships)}`:''],
     ['Orders per Week',(st.n/spanWeeks).toFixed(1),`over ${spanWeeks.toFixed(1)} weeks`],
@@ -1859,14 +1862,14 @@ function render(){
   const bands=[['Last 30 Days (0-30)',0,30],['31-60 Days Ago',31,60],['61-90 Days Ago',61,90],['91-180 Days Ago',91,180],['Older than 180 Days',181,1e9]];
   const cum=[['Last 30 Days',0,30],['Last 60 Days',0,60],['Last 90 Days',0,90],['Last 180 Days (About 6 Months)',0,180]];
   const tot=st.n||1;
-  const row=(lbl,list)=>{const s=stats(list);return `<tr><td>${lbl}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td>${money(s.etv)}</td><td>${money(s.avg)}</td><td>${s.n?money(s.max):'N/A'}</td></tr>`;};
+  const row=(lbl,list,lo,hi)=>{const s=stats(list),ne=s.etv+cxv(o=>{const a=age(o);return a>=lo&&a<=hi;});return `<tr><td>${lbl}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td>${money(ne)}</td><td>${money(s.avg)}</td><td>${s.n?money(s.max):'N/A'}</td></tr>`;};
   const head='<tr><th>Window</th><th>Orders</th><th>% of Orders</th><th>Est. Tax Value</th><th>Avg / Order</th><th>Largest</th></tr>';
   $('#winTable').innerHTML=head
     +`<tr><td colspan="6" style="font-size:13px;font-weight:600;color:var(--muted);text-align:left;border:0;padding-top:10px">Non-Overlapping Buckets</td></tr>`
-    +bands.map(b=>row(b[0],inRange(b[1],b[2]))).join('')
+    +bands.map(b=>row(b[0],inRange(b[1],b[2]),b[1],b[2])).join('')
     +`<tr><td colspan="6" style="font-size:13px;font-weight:600;color:var(--muted);text-align:left;border:0;padding-top:12px">Cumulative</td></tr>`
-    +cum.map(b=>row(b[0],inRange(b[1],b[2]))).join('');
-  $('#pcards').innerHTML=cum.map(b=>{const s=stats(inRange(b[1],b[2]));return `<div class="pcard"><div class="l">${b[0]}</div><div class="v">${s.n}<small>orders</small></div><div class="e">${money(s.etv)}</div><div class="m">${money(s.avg)} avg · ${pct(s.n/tot)} of all orders</div><div class="meter"><i style="width:${s.n/tot*100}%"></i></div></div>`}).join('');
+    +cum.map(b=>row(b[0],inRange(b[1],b[2]),b[1],b[2])).join('');
+  $('#pcards').innerHTML=cum.map(b=>{const s=stats(inRange(b[1],b[2])),ne=s.etv+cxv(o=>{const a=age(o);return a>=b[1]&&a<=b[2];});return `<div class="pcard"><div class="l">${b[0]}</div><div class="v">${s.n}<small>orders</small></div><div class="e">${money(ne)}</div><div class="m">${money(s.avg)} avg · ${pct(s.n/tot)} of all orders</div><div class="meter"><i style="width:${s.n/tot*100}%"></i></div></div>`}).join('');
   $('#winNote').textContent=`Counted back from ${fmtDate(refMs)}${after?` (${after} orders are dated after this and excluded)`:''}. Change the date above to see any other point in time. “Today” shows how old each order is right now.`;
 
   const mm=new Map();
@@ -1874,14 +1877,14 @@ function render(){
   const mkeys=[...mm.keys()].sort((a,b)=>a-b);
   const cxByMonth=new Map();cancelled.forEach(o=>{const k=monthKey(o.od);cxByMonth.set(k,(cxByMonth.get(k)||0)+1);});
   const cxTxt=n=>n?` <span class="cxn">· ${n} cancelled</span>`:'';
-  const maxE=Math.max(...mkeys.map(k=>sum(mm.get(k).map(o=>o.etv))),1);
+  const cxE=k=>cxv(o=>monthKey(o.od)===k),maxE=Math.max(...mkeys.map(k=>sum(mm.get(k).map(o=>o.etv))+cxE(k)),1);
   $('#monthTable').innerHTML='<tr>'+sth('Month','numa')+sth('Orders')+sth('% of Orders')+sth('Est. Tax Value')+sth('Avg / Order')+sth('Shipped'+info('Shipped'))+sth('Avg Days to Ship')+'</tr>'
     +mkeys.map(k=>{const l=mm.get(k),s=stats(l),sh=l.map(shipDays).filter(x=>x!=null);
-      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv}">${money(s.etv)}<span class="bar" style="width:${Math.round(60*s.etv/maxE)}px"></span></td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n+(cxByMonth.get(k)||0)}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
-    +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(st.etv)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n+cancelled.length}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
+      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv+cxE(k)}">${money(s.etv+cxE(k))}<span class="bar" style="width:${Math.round(60*Math.max(0,s.etv+cxE(k))/maxE)}px"></span></td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n+(cxByMonth.get(k)||0)}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
+    +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(netTot)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n+cancelled.length}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
 
   const ins=insights(active,days);
-  limState=computeLimit(active);renderLimit();
+  limState=computeLimit(active,cancelled);renderLimit();
   volState=computeVolume(active);renderVolume();
   renderTax();
   charts=[];
@@ -1913,7 +1916,7 @@ function render(){
   const slow=[...active].filter(o=>o.sd!=null).sort((a,b)=>shipDays(b)-shipDays(a))[0];
   const lastOrder=active.length?Math.max(...active.map(o=>o.od)):null,gap=lastOrder==null?0:Math.floor((Date.now()-lastOrder)/DAY);
   const hl=[];
-  if(active.length)hl.push(`<b>${st.n}</b> orders worth <b>${money(st.etv)}</b> over ${days.length} ${days.length===1?'day':'days'}: about ${(st.n/spanWeeks).toFixed(1)} orders (${money(st.etv/spanWeeks)}) per week and ${money(st.avg)} per item.`);
+  if(active.length)hl.push(`<b>${st.n}</b> orders worth <b>${money(netTot)}</b> over ${days.length} ${days.length===1?'day':'days'}: about ${(st.n/spanWeeks).toFixed(1)} orders (${money(netTot/spanWeeks)}) per week and ${money(st.avg)} per item.`);
   const bestDay=insCache&&insCache.dayRows.length?[...insCache.dayRows].sort((a,b)=>b.v-a.v)[0]:null;
   if(bestDay&&bestDay.v>0)hl.push(`Highest-value day: <b>${fmtDate(bestDay.t)}</b> with ${bestDay.l.length} ${bestDay.l.length===1?'order':'orders'} (${money(bestDay.v)}).`);
   const catTot=new Map();active.forEach(o=>catTot.set(o.cat,(catTot.get(o.cat)||0)+o.etv));
@@ -1975,7 +1978,9 @@ function renderAll(){
   $('#allTable').innerHTML='<tr>'+cols.map(c=>`<th class="sort" data-k="${c[0]}" style="${(c[0]==='name'||c[0]==='cat')?'text-align:left':''}">${c[1]}${sortKey===c[0]?(sortDir>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'
     +(list.length?list.map(o=>`<tr><td style="text-align:left">${fmtDate(o.od)}</td><td class="name">${pn(o.name)}${o.cx?' <span class="badge bad">cancelled</span>':''}${o.fc?' <span class="badge warn">forecast</span>':''}</td><td class="name">${esc(o.cat)}</td><td>${esc(o.asin)}</td><td>${esc(o.num)}</td><td>${o.fc?(o.sd!=null?fmtDate(o.sd)+' (est.)':'Not Set'):(fmtDate(o.sd)||'N/A')}</td>${o.fc?'':`<td>${o.cd!=null?fmtDate(o.cd):(o.cx?(esc(o.cdRaw)||'N/A'):'')}</td>`}<td>${shipDays(o)??'N/A'}</td><td>${money(o.etv)}</td></tr>`).join('')
       :'<tr><td colspan="'+cols.length+'" style="text-align:center;color:var(--muted)">No orders match the filters.</td></tr>');
-  $('#cnt').textContent=isFc?`${list.length} of ${fcItems.length} Forecast Items · ${money(sum(list.map(o=>o.etv)))}`:`${list.length} of ${orders.length} Orders · ${money(sum((stt==='cancelled'?list:list.filter(o=>!o.cx)).map(o=>o.etv)))}`;
+  $('#cnt').textContent=isFc?`${list.length} of ${fcItems.length} Forecast Items · ${money(sum(list.map(o=>o.etv)))}`:(()=>{const act=list.filter(o=>!o.cx),cxl=list.filter(o=>o.cx),tot=orders.filter(o=>!o.cx).length;
+    if(!act.length&&cxl.length)return `${cxl.length} of ${orders.length-tot} Cancelled Orders · ${money(sum(cxl.map(o=>o.etv)))}`;
+    return `${list.length} of ${orders.length} Orders · ${money(sum(list.map(o=>o.etv)))}`+(cxl.length?` (${act.length} active, ${cxl.length} cancelled)`:'');})();
   document.querySelectorAll('#allTable th.sort').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='name'||k==='asin'||k==='num'||k==='cat')?1:-1;}renderAll();});
 }
 $('#q').oninput=renderAll;
