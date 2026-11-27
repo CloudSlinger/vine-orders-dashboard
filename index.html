@@ -383,7 +383,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="card" id="taxCard">
     <h2>Quarterly Estimated Tax Payments</h2>
-    <p class="note">Applies your Taxable Percentage to the estimated tax value of orders placed in each IRS payment period (by order date, cancelled orders excluded) and shows what to pay on each due date. This report ignores the page filters. It is an estimate for planning, not tax advice.</p>
+    <p class="note">Applies your Taxable Percentage to the estimated tax value of orders placed in each IRS payment period (by order date, net of cancelled orders) and shows what to pay on each due date. This report ignores the page filters. It is an estimate for planning, not tax advice.</p>
     <div class="frow" style="margin-bottom:16px">
       <label><span>Taxable Percentage (%)<span class="info" role="button" tabindex="0" data-i="taxpct" aria-label="More information"></span></span><input id="taxPct" type="number" min="0" max="100" step="0.5" value="25"></label>
       <label>Tax Year<select id="taxYear"></select></label>
@@ -587,7 +587,7 @@ const TIPS={
   'Forecast Peak':'The highest rolling value in the days ahead, counting your forecast items.',
   'Forecast Over Limit On':'The first day ahead when your forecast items would push you over the limit.',
   'Taxable Percentage':'The share of your order value treated as taxable income. Change it in the field above.',
-  'Shipped':'Orders from that month that have a ship date, out of all orders placed that month including cancelled ones. Cancelled orders never ship, so they lower this number. Orders, % of Orders and Est. Tax Value count active orders only.',
+  'Shipped':'Orders from that month that have a ship date, out of all orders placed that month including cancelled ones. Cancelled orders never ship, so they lower this number. Orders and % of Orders count active orders only. Est. Tax Value is net of cancelled orders.',
   'Day':'The day of the week. Each row summarizes every order you placed on that weekday.',
   'Next Date':'The next calendar date that falls on this weekday. Today means it is that day now.',
   'Rank':'Order of the weekdays from best to worst, based on average order value per day. Ranking leans toward your overall average when a weekday has little data, so one lucky day does not take the top spot. The top three are highlighted.',
@@ -1543,7 +1543,7 @@ function computeTax(){
   defs.forEach(d=>{const l=inYear.filter(o=>o.od>=d.s&&o.od<=d.e);d.n=l.length;d.val=sum(l.map(o=>o.etv))+sum(cxY.filter(o=>o.od>=d.s&&o.od<=d.e).map(o=>o.etv));d.tax=d.val*rate;});
   const cum=[];let c=0;inYear.concat(cxY).sort((a,b)=>a.od-b.od).forEach(o=>{c+=o.etv;cum.push({t:o.od,v:c});});
   const totVal=sum(defs.map(d=>d.val)),today=new Date(),todayMs=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
-  return{fcN:fcY.length,fcVal:sum(fcY.map(o=>o.etv)),years,y,rate,defs,cum,totVal,totTax:totVal*rate,todayMs,n:inYear.length,lastOd:inYear.length?inYear[inYear.length-1].od:null};
+  return{cxN:cxY.length,fcN:fcY.length,fcVal:sum(fcY.map(o=>o.etv)),years,y,rate,defs,cum,totVal,totTax:totVal*rate,todayMs,n:inYear.length,lastOd:inYear.length?inYear[inYear.length-1].od:null};
 }
 let taxPaid={};
 try{const s=JSON.parse(localStorage.getItem('vine-taxpaid')||'null');if(s&&typeof s==='object'&&!Array.isArray(s))Object.keys(s).forEach(k=>{if(typeof s[k]==='number')taxPaid[k]=s[k];});}catch(e){}
@@ -1556,7 +1556,7 @@ function renderTax(){
   const next=T.defs.find(d=>!d.paid&&d.dueA>=T.todayMs);
   const paidList=T.defs.filter(d=>d.paid),paidSum=sum(paidList.map(d=>d.tax));
   const tiles=[
-    [`${T.y} Order Value`,money(T.totVal),`${T.n} active orders`],
+    [`${T.y} Order Value`,money(T.totVal),`${T.n-T.fcN} active orders${T.fcN?` + ${T.fcN} forecast`:''}, net of ${T.cxN} cancelled`],
     ['Taxable Percentage',pr+'%','applied to order value'],
     [`Estimated ${T.y} Tax`,money(T.totTax),'sum of the four payments'],
     ['Next Payment Due',next?fmtDate(next.dueA):'None Left',next?`${next.q}: ${money(next.tax)}`:(paidList.length===T.defs.length?`all ${T.y} payments are marked paid`:`no unpaid due dates are coming up`)],
@@ -1952,7 +1952,7 @@ function render(){
     ['Most Affected Category',cxTop?esc(cxTop[0]):'N/A',cxTop?`${cxTop[1]} cancelled`:'no cancellations'],
   ].map(k=>`<div class="pcard"><div class="l">${k[0]}${info(k[0])}</div><div class="v" style="font-size:24px">${k[1]}</div><div class="m">${k[2]}</div></div>`).join('');
   $('#cxNote').textContent=cancelled.length
-    ?'Cancelled orders are excluded from every other report on this page, so totals elsewhere only count active orders.'
+    ?'Cancelled orders are not counted in order totals elsewhere on this page, and their negative values are subtracted from dollar totals so they match your report.'
     :'No cancelled orders were found in this report. If an order is cancelled in a future report, it will be listed here.';
   $('#cxBody').hidden=!cancelled.length;
   const cxm=new Map();
