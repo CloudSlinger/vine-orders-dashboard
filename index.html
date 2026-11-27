@@ -107,6 +107,7 @@ html.cz .hero,html.cz main,html.cz footer{display:none!important}
 @media(max-width:560px){.pcards{grid-template-columns:1fr}}
 .pcard{border:1px solid var(--line);border-radius:var(--rc);padding:16px 18px;background:var(--surface2)}
 .pcard .l{font-size:14px;color:var(--text);font-weight:500}
+#limTiles .l,#ovTiles .l,#taxTiles .l,#cxTiles .l{white-space:nowrap}
 .pcard .v{font-size:32px;font-weight:400;line-height:1.2;margin-top:6px}
 .pcard .v small{font-size:13px;color:var(--text2);font-weight:500;margin-left:6px;letter-spacing:0}
 .pcard .e{font-size:16px;font-weight:500}
@@ -1770,7 +1771,7 @@ function balanceGrids(){
   ['#limTiles','#ovTiles','#taxTiles','#cxTiles'].forEach(id=>{
     const el=$(id);if(!el)return;const n=el.children.length;
     if(!n){el.style.gridTemplateColumns='';return;}
-    const max=Math.max(1,Math.floor((el.clientWidth+12)/202));
+    const max=Math.max(1,Math.min(5,Math.floor((el.clientWidth+12)/252)));
     const rows=Math.ceil(n/max),cols=Math.ceil(n/rows);
     el.style.gridTemplateColumns='repeat('+cols+',minmax(0,1fr))';
   });
