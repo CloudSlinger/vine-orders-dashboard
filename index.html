@@ -284,6 +284,8 @@ th.s.desc::after{content:" \25BC";opacity:1}
       <input class="ctl-data" type="date" id="ref">
       <button class="ctl-data" id="btnLast" title="Use the most recent order date in the data">Latest Order</button>
       <button class="ctl-data" id="btnToday" title="Use today's date">Today</button>
+      <button class="ctl-data" id="btnCustomize" title="Open a new tab to choose which reports are shown and drag them into your order">Customize</button>
+      <button class="ctl-data" id="btnResetTiles" title="Restore the default order of all reports and tiles">Reset Layout</button>
       <input type="file" id="file" accept=".xlsx,.xls,.csv,.pdf" multiple hidden>
       <button id="btnTheme" class="icon-btn" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
     </div>
@@ -305,8 +307,6 @@ th.s.desc::after{content:" \25BC";opacity:1}
       <span class="lbl">Loaded Reports</span>
       <div class="chips" id="chips"></div>
       <button id="btnLoad" class="primary-lg add-btn" title="Add one or more Vine reports (hold Ctrl or Shift to select several years)">Add Reports</button>
-      <button id="btnResetTiles" title="Restore the default order of all reports and tiles">Reset Layout</button>
-      <button id="btnCustomize" title="Open a new tab to choose which reports are shown and drag them into your order">Customize</button>
       <button id="btnClearAll">Clear All</button>
     </div>
     <div class="hint" id="loadNote"></div>
