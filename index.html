@@ -1958,7 +1958,8 @@ function taxChart(){
   if(T.cum.length){
     const byDay=new Map();T.cum.forEach(c=>byDay.set(c.t,c.v));
     const days=[...byDay.keys()].sort((a,b)=>a-b);
-    const endMs=Math.min(Date.UTC(T.y,11,31),Math.max(T.lastOd,T.y===new Date().getFullYear()?T.todayMs:T.lastOd));
+    // a finished year runs through its last due date; the current year runs to today (or the last order)
+    const endMs=T.y<new Date().getFullYear()?Math.max(Date.UTC(T.y,11,31),...T.defs.map(d=>d.dueA)):Math.min(Date.UTC(T.y,11,31),Math.max(T.lastOd,T.y===new Date().getFullYear()?T.todayMs:T.lastOd));
     const last=Math.max(endMs,days[days.length-1]),DY=864e5;
     // one point per day from the day before the first order, carrying the running total forward
     const pts=[[X(x0),Y(0)]];let run=0,di=0;
