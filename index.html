@@ -11,6 +11,7 @@
   --bg:#eaeaea; --surface:#ffffff; --surface2:#f6f7f7; --line:#d5d8d8; --grid:#e3e5e5;
   --text:#0b0f14; --text2:#3f4a56; --muted:#68737f;
   --s1:#2162a1; --s2:#ff9900; --s1soft:#e1edf7; --orsoft:#fff0d4;
+  --c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948;
   --shadow:0 1px 2px rgba(34,46,61,.07),0 6px 20px rgba(34,46,61,.06);
   --btn-bg:#ffffff; --btn-border:#888c8c; --btn-text:#0f1111; --btn-hover:#f7fafa;
   --grn:#007600; --track:#ffffff; --hd:#007185; --warn:#c45500; --bad:#b12704;
@@ -22,6 +23,7 @@
     --bg:#06090d; --surface:#121a24; --surface2:#17212d; --line:#2a3646; --grid:#212c3a;
     --text:#f2f4f6; --text2:#b9c3ce; --muted:#8896a6;
     --s1:#08aae3; --s2:#ff9900; --s1soft:#12354d; --orsoft:#3a2806;
+    --c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#0ca30c;--c7:#9085e9;--c8:#e66767;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 6px 20px rgba(0,0,0,.35);
     --btn-bg:#17212d; --btn-border:#6b7b8d; --btn-text:#f2f4f6; --btn-hover:#222f3e;
     --grn:#2fa02f; --track:#0e151e; --hd:#4cc3d9; --warn:#ff9900; --bad:#ff7a6b;
@@ -32,6 +34,7 @@
   --bg:#06090d; --surface:#121a24; --surface2:#17212d; --line:#2a3646; --grid:#212c3a;
   --text:#f2f4f6; --text2:#b9c3ce; --muted:#8896a6;
   --s1:#08aae3; --s2:#ff9900; --s1soft:#12354d; --orsoft:#3a2806;
+  --c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#0ca30c;--c7:#9085e9;--c8:#e66767;
   --shadow:0 1px 2px rgba(0,0,0,.45),0 6px 20px rgba(0,0,0,.35);
   --btn-bg:#17212d; --btn-border:#6b7b8d; --btn-text:#f2f4f6; --btn-hover:#222f3e;
   --grn:#2fa02f; --track:#0e151e; --hd:#4cc3d9; --warn:#ff9900; --bad:#ff7a6b;
@@ -107,6 +110,17 @@ html.cz .hero,html.cz main,html.cz footer{display:none!important}
 @media(max-width:560px){.pcards{grid-template-columns:1fr}}
 .pcard{border:1px solid var(--line);border-radius:var(--rc);padding:16px 18px;background:var(--surface2)}
 .pcard .l{font-size:14px;color:var(--text);font-weight:500}
+.catleg{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.catleg button{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;font-size:14px;border-radius:999px;background:var(--surface);color:var(--text)}
+.catleg button i{width:12px;height:12px;border-radius:3px;background:var(--c);border:2px solid var(--c);box-sizing:border-box}
+.catleg button[aria-pressed=false]{color:var(--muted)}
+.catleg button[aria-pressed=false] i{background:transparent}
+.catleg button[aria-pressed=true]{border-color:var(--c)}
+#chCat svg{display:block;width:100%;height:auto}
+.seg{display:inline-flex;border:1px solid var(--btn-border,var(--line));border-radius:var(--r);overflow:hidden;margin:0 0 6px}
+.seg button{border:0;border-radius:0;background:var(--surface);color:var(--text);padding:6px 14px;font-size:14px;box-shadow:none}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--s1);color:#fff}
 #limTiles .l,#ovTiles .l,#taxTiles .l,#cxTiles .l{white-space:nowrap}
 .pcard .v{font-size:32px;font-weight:400;line-height:1.2;margin-top:6px}
 .pcard .v small{font-size:13px;color:var(--text2);font-weight:500;margin-left:6px;letter-spacing:0}
@@ -127,7 +141,6 @@ tr.tot td{font-weight:650;border-top:2px solid var(--line)}
 td.name{white-space:normal;text-align:left;max-width:560px}
 th.sort{cursor:pointer;user-select:none}
 th.sort:hover{color:var(--text)}
-.bar{display:inline-block;height:8px;border-radius:999px;background:var(--grn);vertical-align:middle;margin-left:8px}
 svg text{fill:var(--text2);font:11.5px "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
 svg .gl{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 3}
 svg .val{fill:var(--text);font-weight:650}
@@ -400,6 +413,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
   <div class="card">
     <h2>Orders by Month</h2>
     <p class="note">Grouped by order date. “Shipped” shows how many of that month's orders, including cancelled ones, have a ship date.</p>
+    <div class="seg" id="monthMetric" role="group" aria-label="Chart shows"><button type="button" data-m="orders" aria-pressed="true">Orders</button><button type="button" data-m="value" aria-pressed="false">Est. Tax Value</button></div>
     <div class="chart" id="chMonth"></div>
     <div class="tscroll"><table id="monthTable"></table></div>
   </div>
@@ -430,6 +444,11 @@ th.s.desc::after{content:" \25BC";opacity:1}
     <h2>Product Categories and Their Best Days</h2>
     <p class="note">Items are grouped by keywords in the product title (rules are listed at the top of the script in this file, so you can edit them). The grid shows total estimated tax value by weekday; darker means more.</p>
     <div class="tscroll"><table id="catTable"></table></div>
+    <h3>Best Days by Category</h3>
+    <p class="note">Each shaded area is one category, drawn across the week so overlapping areas show where categories peak together. Values are averaged per weekday, so a weekday that occurs more often does not look better, and the dot marks each category's Best Day from the table above. Tap or click a category name to add or remove it. Up to 4 are shown by default; more can be added, but 4 or fewer is easiest to read.</p>
+    <div class="seg" id="catMetric" role="group" aria-label="Chart shows"><button type="button" data-m="share" aria-pressed="true">% of Category's Value</button><button type="button" data-m="value" aria-pressed="false">Avg $ per Weekday</button></div>
+    <div class="catleg" id="catLeg"></div>
+    <div class="chart" id="chCat"></div>
     <h3>Category by Weekday Value</h3>
     <div class="tscroll"><table class="heat" id="heat"></table></div>
   </div>
@@ -947,7 +966,7 @@ function drawTopDays(){
   const mx=list.length?list[0].v:1;
   $('#topDays').innerHTML='<tr>'+sth('Date','numa')+sth('Day','numa')+sth('Orders')+sth('Total Value')+sth('Avg / Order')+sth('Best Item That Day','str',true)+'</tr>'
     +(list.length?list.map(d=>{const best=[...d.l].sort((a,b)=>b.etv-a.etv)[0];
-      return `<tr><td data-v="${d.t}">${fmtDate(d.t)}</td><td data-v="${wd(d.t)}">${DOW[wd(d.t)]}</td><td>${d.l.length}</td><td data-v="${d.v}">${money(d.v)}<span class="bar" style="width:${Math.round(50*d.v/mx)}px"></span></td><td data-v="${d.v/d.l.length}">${money(d.v/d.l.length)}</td><td class="name">${pn(best.name)}</td></tr>`}).join('')
+      return `<tr><td data-v="${d.t}">${fmtDate(d.t)}</td><td data-v="${wd(d.t)}">${DOW[wd(d.t)]}</td><td>${d.l.length}</td><td data-v="${d.v}">${money(d.v)}</td><td data-v="${d.v/d.l.length}">${money(d.v/d.l.length)}</td><td class="name">${pn(best.name)}</td></tr>`}).join('')
       :'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No orders match.</td></tr>');
 }
 
@@ -981,6 +1000,7 @@ function insights(active,days){
   $('#catTable').innerHTML='<tr>'+sth('Category','str')+sth('Orders')+sth('Total Value')+sth('Avg / Item')+sth('% of Value')+sth('Best Day')+sth('Evidence'+info('Evidence'),'num',true)+sth('Confidence'+info('Confidence'))+'</tr>'
     +cats.map(c=>{const bw=bestW(c),share=c.tot?c.byW[bw]/c.tot:0,med=(c.nW[bw]>=4&&share>=.3)?1:0;
       return `<tr><td>${esc(c.c)}</td><td>${c.n}</td><td data-v="${c.tot}">${money(c.tot)}</td><td data-v="${c.tot/c.n}">${money(c.tot/c.n)}</td><td data-v="${c.tot/totV}">${pct(c.tot/totV)}</td><td data-v="${bw}"><b>${FULL[bw]}</b></td><td class="name" data-v="${share}">${c.nW[bw]} of ${c.n} order${c.n===1?'':'s'} · ${pct(share)} of its value</td><td data-v="${med}">${conf(c.nW[bw],share)}</td></tr>`}).join('');
+  insCache.cats=cats;insCache.occ=occ;
   const maxCell=Math.max(...cats.flatMap(c=>c.byW),1);
   const cell=(c,w)=>{const v=c.byW[w],p=v?Math.round(12+78*Math.sqrt(v/maxCell)):0;
     const tp=`<b>${esc(c.c)} · ${FULL[w]}</b>${c.nW[w]} orders<br>${money(v)} total`;
@@ -1710,6 +1730,82 @@ addEventListener('storage',e=>{
   setCardLayout(Array.isArray(sl)?sl:defaultLayout);applyHidden();
   if(document.documentElement.classList.contains('cz'))czBuild();
 });
+let catMetric='share',catSel=null;
+try{if(localStorage.getItem('vine-catmetric')==='value')catMetric='value';}catch(e){}
+function drawCatChart(){
+  const host=$('#chCat'),leg=$('#catLeg');if(!host||!insCache||!insCache.cats)return;
+  const all=insCache.cats.slice().sort((a,b)=>a.c==='Other'?1:b.c==='Other'?-1:a.c.localeCompare(b.c));
+  const slot=new Map(all.map((c,i)=>[c.c,i%8+1]));
+  const names=all.map(c=>c.c);
+  if(!catSel)catSel=new Set(insCache.cats.slice(0,4).map(c=>c.c));
+  catSel=new Set([...catSel].filter(n=>names.includes(n)));
+  if(!catSel.size)catSel=new Set(insCache.cats.slice(0,4).map(c=>c.c));
+  leg.innerHTML=all.map(c=>`<button type="button" data-n="${esc(c.c)}" style="--c:var(--c${slot.get(c.c)})" aria-pressed="${catSel.has(c.c)}"><i></i>${esc(c.c)}</button>`).join('');
+  $('#catMetric').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===catMetric)));
+  const shown=all.filter(c=>catSel.has(c.c)),share=catMetric==='share';
+  const occ=insCache.occ||Array(7).fill(1),adj=(c,w)=>occ[w]?c.byW[w]/occ[w]:0;
+  const adjTot=c=>DOW.reduce((a,_,w)=>a+adj(c,w),0);
+  const val=(c,w)=>share?(adjTot(c)?adj(c,w)/adjTot(c):0):adj(c,w);
+  const W=Math.max(host.clientWidth||600,480),H=300,Lm=share?46:58,R=28,T=26,B=36,iw=W-Lm-R,ih=H-T-B;
+  const rawMax=Math.max(...shown.flatMap(c=>DOW.map((_,w)=>val(c,w))),share?.05:1);
+  const max=share?Math.ceil(rawMax*100/10)*10/100||.1:niceMax(rawMax);
+  const fmt=v=>share?Math.round(v*100)+'%':money0(v);
+  const X=w=>Lm+iw*(w+.5)/7,Y=v=>T+ih-ih*v/max;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((share?'Share of each category value by weekday':'Average value per weekday')+' for '+shown.map(c=>c.c).join(', '))}">`;
+  for(let i=0;i<=4;i++){const y=T+ih-ih*i/4;s+=`<line class="gl" x1="${Lm}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${Lm-8}" y="${y+4}" text-anchor="end">${fmt(max*i/4)}</text>`;}
+  DOW.forEach((d,w)=>{s+=`<text x="${X(w)}" y="${H-12}" text-anchor="middle">${d}</text>`;});
+  const pts=c=>DOW.map((_,w)=>[X(w),Y(val(c,w))]);
+  shown.forEach(c=>{
+    const col=`var(--c${slot.get(c.c)})`,p=pts(c),line=p.map((q,i)=>(i?'L':'M')+q[0]+','+q[1]).join('');
+    s+=`<path d="${line}L${p[6][0]},${T+ih}L${p[0][0]},${T+ih}Z" fill="${col}" fill-opacity=".13"/>`;
+  });
+  shown.forEach(c=>{
+    const col=`var(--c${slot.get(c.c)})`,p=pts(c),line=p.map((q,i)=>(i?'L':'M')+q[0]+','+q[1]).join('');
+    s+=`<path d="${line}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  const used=[];
+  shown.forEach(c=>{
+    let bw=0;for(let w=1;w<7;w++)if(val(c,w)>val(c,bw))bw=w;
+    if(!val(c,bw))return;
+    const col=`var(--c${slot.get(c.c)})`,x=X(bw),y=Y(val(c,bw));
+    s+=`<circle cx="${x}" cy="${y}" r="6" fill="${col}" stroke="var(--surface)" stroke-width="2"/>`;
+    let ly=y-12;while(used.some(u=>Math.abs(u[0]-x)<46&&Math.abs(u[1]-ly)<14))ly-=14;used.push([x,ly]);
+    s+=`<text class="val" x="${x}" y="${Math.max(12,ly)}" text-anchor="middle" style="fill:var(--text)">${DOW[bw]}</text>`;
+  });
+  s+=`<line id="catCross" y1="${T}" y2="${T+ih}" stroke="var(--muted)" stroke-dasharray="3 3" style="display:none"/>`;
+  for(let w=0;w<7;w++)s+=`<rect class="hit" data-w="${w}" x="${Lm+iw*w/7}" y="${T}" width="${iw/7}" height="${ih}" fill="transparent"/>`;
+  s+='</svg>';
+  host.innerHTML=s;
+  const cross=host.querySelector('#catCross');
+  host.querySelectorAll('.hit').forEach(r=>{
+    const w=+r.dataset.w;
+    r.onmousemove=e=>{
+      const rows=shown.map(c=>({c,v:c.byW[w],n:c.nW[w],pv:val(c,w)})).sort((a,b)=>b.v-a.v);
+      cross.setAttribute('x1',X(w));cross.setAttribute('x2',X(w));cross.style.display='';
+      showTip(`<b>${FULL[w]}</b>`+rows.map(r2=>`<span style="color:var(--c${slot.get(r2.c.c)})">&#9632;</span> ${esc(r2.c.c)}: ${money(r2.v)} (${share?pct(r2.pv):r2.n+' orders'})`).join('<br>'),e);
+    };
+    r.onmouseleave=()=>{hideTip();cross.style.display='none';};
+  });
+}
+(function(){
+  $('#catLeg').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-n]');if(!b)return;
+    const n=b.dataset.n;if(catSel.has(n)){if(catSel.size>1)catSel.delete(n);}else catSel.add(n);
+    drawCatChart();
+  });
+  $('#catMetric').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-m]');if(!b||b.dataset.m===catMetric)return;
+    catMetric=b.dataset.m;try{localStorage.setItem('vine-catmetric',catMetric);}catch(_){}
+    drawCatChart();
+  });
+})();
+let monthMetric='orders';
+try{const m=localStorage.getItem('vine-monthmetric');if(m==='value')monthMetric='value';}catch(e){}
+$('#monthMetric').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-m]');if(!b||b.dataset.m===monthMetric)return;
+  monthMetric=b.dataset.m;try{localStorage.setItem('vine-monthmetric',monthMetric);}catch(_){}
+  if(window.__redraw)window.__redraw();
+});
 $('#btnCustomize').onclick=()=>{
   const u=location.href.split('#')[0]+'#customize';
   if(!window.open(u,'_blank'))location.href=u;
@@ -1878,10 +1974,10 @@ function render(){
   const mkeys=[...mm.keys()].sort((a,b)=>a-b);
   const cxByMonth=new Map();cancelled.forEach(o=>{const k=monthKey(o.od);cxByMonth.set(k,(cxByMonth.get(k)||0)+1);});
   const cxTxt=n=>n?` <span class="cxn">· ${n} cancelled</span>`:'';
-  const cxE=k=>cxv(o=>monthKey(o.od)===k),maxE=Math.max(...mkeys.map(k=>sum(mm.get(k).map(o=>o.etv))+cxE(k)),1);
+  const cxE=k=>cxv(o=>monthKey(o.od)===k);
   $('#monthTable').innerHTML='<tr>'+sth('Month','numa')+sth('Orders')+sth('% of Orders')+sth('Est. Tax Value')+sth('Avg / Order')+sth('Shipped'+info('Shipped'))+sth('Avg Days to Ship')+'</tr>'
     +mkeys.map(k=>{const l=mm.get(k),s=stats(l),sh=l.map(shipDays).filter(x=>x!=null);
-      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv+cxE(k)}">${money(s.etv+cxE(k))}<span class="bar" style="width:${Math.round(60*Math.max(0,s.etv+cxE(k))/maxE)}px"></span></td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n+(cxByMonth.get(k)||0)}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
+      return `<tr><td data-v="${k}">${monthLabel(k)}</td><td>${s.n}</td><td>${pct(s.n/tot)}</td><td data-v="${s.etv+cxE(k)}">${money(s.etv+cxE(k))}</td><td>${money(s.avg)}</td><td data-v="${sh.length}">${sh.length}/${s.n+(cxByMonth.get(k)||0)}</td><td data-v="${sh.length?avg(sh):-1}">${sh.length?avg(sh).toFixed(1):'N/A'}</td></tr>`}).join('')
     +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(netTot)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n+cancelled.length}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
 
   const ins=insights(active,days);
@@ -1890,8 +1986,11 @@ function render(){
   renderTax();
   charts=[];
   const drawCharts=()=>{
+    drawCatChart();
     balanceGrids();
-    barChart($('#chMonth'),mkeys.map(k=>{const s=stats(mm.get(k));return{label:monthLabel(k),value:s.n,tip:`<b>${monthLabel(k)}</b>${s.n} orders<br>${money(s.etv)} est. tax value<br>${money(s.avg)} avg`}}),{aria:'Orders per month',h:240,labelW:62});
+    {const byVal=monthMetric==='value',ev=k=>{const l=mm.get(k);return stats(l).etv+cxE(k);};
+    $('#monthMetric').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===monthMetric)));
+    barChart($('#chMonth'),mkeys.map(k=>{const s=stats(mm.get(k));return{label:monthLabel(k),value:byVal?Math.max(0,ev(k)):s.n,tip:`<b>${monthLabel(k)}</b>${s.n} orders<br>${money(ev(k))} est. tax value<br>${money(s.avg)} avg`}}),Object.assign({aria:byVal?'Estimated tax value per month':'Orders per month',h:240,labelW:62},byVal?{axisFmt:v=>money0(v),valFmt:v=>money0(v)}:{}));}
     const wk=new Map();active.forEach(o=>{const k=weekStart(o.od);wk.set(k,(wk.get(k)||[]).concat(o));});
     const wkeys=[...wk.keys()].sort((a,b)=>a-b),wmax=Math.max(...wkeys.map(k=>wk.get(k).length));
     barChart($('#chWeek'),wkeys.map(k=>{const l=wk.get(k),s=stats(l);const d=new Date(k);return{label:`${MON[d.getUTCMonth()]} ${d.getUTCDate()}${ins.multi?" '"+String(d.getUTCFullYear()).slice(2):''}`,value:l.length,highlight:l.length===wmax&&wkeys.length>1,tip:`<b>Week of ${fmtDate(k)}</b>${l.length} orders<br>${money(s.etv)} est. tax value`}}),{aria:'Orders per week',labelW:ins.multi?66:52});
