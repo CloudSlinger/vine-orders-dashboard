@@ -110,6 +110,11 @@ html.cz .hero,html.cz main,html.cz footer{display:none!important}
 @media(max-width:560px){.pcards{grid-template-columns:1fr}}
 .pcard{border:1px solid var(--line);border-radius:var(--rc);padding:16px 18px;background:var(--surface2)}
 .pcard .l{font-size:14px;color:var(--text);font-weight:500}
+.more{margin-top:18px}
+.more>summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--s1);padding:8px 0;list-style:none}
+.more>summary::before{content:"\25B8";display:inline-block;margin-right:8px;transition:transform .12s}
+.more[open]>summary::before{transform:rotate(90deg)}
+td.topc{box-shadow:inset 0 0 0 3px var(--s2);font-weight:700}
 .catleg{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
 .catleg button{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;font-size:14px;border-radius:999px;background:var(--surface);color:var(--text)}
 .catleg button i{width:12px;height:12px;border-radius:3px;background:var(--c);border:2px solid var(--c);box-sizing:border-box}
@@ -449,16 +454,16 @@ th.s.desc::after{content:" \25BC";opacity:1}
     <div class="seg" id="catMetric" role="group" aria-label="Chart shows"><button type="button" data-m="share" aria-pressed="true">% of Category's Value</button><button type="button" data-m="value" aria-pressed="false">Avg $ per Weekday</button></div>
     <div class="catleg" id="catLeg"></div>
     <div class="chart" id="chCat"></div>
-    <h3>Category by Weekday Value</h3>
-    <div class="tscroll"><table class="heat" id="heat"></table></div>
+    <details class="more" id="heatDet"><summary>Show exact values for every category and weekday</summary>
+    <p class="note">Total estimated tax value by weekday; darker means more. An orange outline marks the 5 strongest category and weekday combinations (Other is left out). See Weekly Planner above for the next dates.</p>
+    <div class="tscroll"><table class="heat" id="heat"></table></div></details>
   </div>
 
   <div class="card">
     <h2>Weekly Planner: Predicted Best Days</h2>
     <div class="callout" id="planNote"></div>
     <div class="tscroll"><table id="planTable"></table></div>
-    <h3>Strongest Day and Category Combinations</h3>
-    <ul class="hl" id="combos"></ul>
+    <p class="note">For each category's own best day, see Product Categories and Their Best Days below.</p>
   </div>
 
   <div class="grid2">
@@ -1001,10 +1006,12 @@ function insights(active,days){
     +cats.map(c=>{const bw=bestW(c),share=c.tot?c.byW[bw]/c.tot:0,med=(c.nW[bw]>=4&&share>=.3)?1:0;
       return `<tr><td>${esc(c.c)}</td><td>${c.n}</td><td data-v="${c.tot}">${money(c.tot)}</td><td data-v="${c.tot/c.n}">${money(c.tot/c.n)}</td><td data-v="${c.tot/totV}">${pct(c.tot/totV)}</td><td data-v="${bw}"><b>${FULL[bw]}</b></td><td class="name" data-v="${share}">${c.nW[bw]} of ${c.n} order${c.n===1?'':'s'} · ${pct(share)} of its value</td><td data-v="${med}">${conf(c.nW[bw],share)}</td></tr>`}).join('');
   insCache.cats=cats;insCache.occ=occ;
+  const topCombo=new Set();
+  {const cb=[];cats.forEach(c=>{if(c.c==='Other')return;for(let w=0;w<7;w++)if(c.nW[w]>=2)cb.push({k:c.c+'|'+w,v:c.byW[w]});});cb.sort((a,b)=>b.v-a.v).slice(0,5).forEach(x=>topCombo.add(x.k));}
   const maxCell=Math.max(...cats.flatMap(c=>c.byW),1);
   const cell=(c,w)=>{const v=c.byW[w],p=v?Math.round(12+78*Math.sqrt(v/maxCell)):0;
     const tp=`<b>${esc(c.c)} · ${FULL[w]}</b>${c.nW[w]} orders<br>${money(v)} total`;
-    return `<td data-tip="${esc(tp)}" style="background:${v?`color-mix(in srgb,var(--s1) ${p}%,var(--surface))`:'transparent'};color:${p>=78?'#fff':'var(--text)'}">${v?money0(v):'·'}</td>`;};
+    return `<td class="${topCombo.has(c.c+'|'+w)?'topc':''}" data-tip="${esc(tp)}" style="background:${v?`color-mix(in srgb,var(--s1) ${p}%,var(--surface))`:'transparent'};color:${p>=78?'#fff':'var(--text)'}">${v?money0(v):'·'}</td>`;};
   $('#heat').innerHTML='<tr><th>Category</th>'+DOW.map(d=>`<th style="text-align:center">${d}</th>`).join('')+'</tr>'
     +cats.map(c=>`<tr><td>${esc(c.c)}</td>${DOW.map((_,w)=>cell(c,w)).join('')}</tr>`).join('');
   $('#heat').onmousemove=e=>{const td=e.target.closest('td[data-tip]');td?showTip(td.dataset.tip,e):hideTip();};
@@ -1019,10 +1026,6 @@ function insights(active,days){
       return `<tr class="${r<=3?'top3':''}"><td data-v="${x.w}"><b>${FULL[x.w]}</b></td><td data-v="${ahead}">${nextDate(x.w)}</td><td data-v="${r}"><span class="badge${r<=3?' ok':' low'}">#${r}</span></td><td>${x.ord.toFixed(1)}</td><td data-v="${x.mean}">${money0(x.mean)} <span style="color:var(--muted)">(${money0(x.lo)}-${money0(x.hi)})</span></td><td class="name">${best?esc(best.c):'N/A'}</td><td class="name" data-v="${share}">${best?`${n} order${n===1?'':'s'} · ${pct(share)} of the day's value`:'No data'}</td><td data-v="${med}">${best?conf(n,share):'N/A'}</td></tr>`}).join('');
   const weeks=(days.length/7).toFixed(1);
   $('#planNote').innerHTML=`<b>Best days to watch: ${rank.slice(0,3).map(w=>FULL[w]).join(', ')}.</b> Based on ${active.length} orders over ${days.length} days (${weeks} weeks, about ${Math.round(sum(occ)/7)} of each weekday). “Expected value” is the average value on that weekday, with a ±1 standard-error range. With this little history, use it as a guide to where to look, not a guarantee. Confidence stays Low or Medium until you have several months of data.`;
-  const combos=[];
-  cats.forEach(c=>{if(c.c==='Other')return;for(let w=0;w<7;w++)if(c.nW[w]>=2)combos.push({c,w,v:c.byW[w],n:c.nW[w]});});
-  combos.sort((a,b)=>b.v-a.v);
-  $('#combos').innerHTML=combos.slice(0,5).map(x=>`<li><b>${esc(x.c.c)} on ${FULL[x.w]}s</b>: ${money(x.v)} from ${x.n} orders (${pct(x.v/(x.c.tot||1))} of that category's value)</li>`).join('')||'<li>Not enough repeat data yet.</li>';
   return{W,rank,dayRows,multi};
 }
 function insightCharts(ins){
