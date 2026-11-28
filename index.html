@@ -476,6 +476,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
     <div class="catleg" id="catLeg"></div>
     <div class="chart" id="chCat"></div>
     </div>
+    <p class="note" id="catRecon"></p>
     <details class="more" id="heatDet"><summary>Show exact values for every category and day</summary>
     <p class="note">Total estimated tax value by day of the week; darker means more. Each category uses the same color as the chart above. An orange outline and a small number mark the strongest category and day combinations by total value (Other is left out). Click a category name to mark its strongest day. See Weekly Planner above for the next dates.</p>
     <div class="seg" id="heatTop" role="group" aria-label="Numbered cells"><button type="button" data-n="3" aria-pressed="false">Top 3</button><button type="button" data-n="5" aria-pressed="true">Top 5</button><button type="button" data-n="10" aria-pressed="false">Top 10</button></div>
@@ -2053,6 +2054,7 @@ function render(){
     +`<tr class="tot"><td>Total</td><td>${st.n}</td><td>100%</td><td>${money(netTot)}</td><td>${money(st.avg)}</td><td>${ships.length}/${st.n+cancelled.length}</td><td>${ships.length?avg(ships).toFixed(1):'N/A'}</td></tr>`;
 
   const ins=insights(active,days);
+  {const rc=$('#catRecon');if(rc&&insCache&&insCache.cats){const cs=sum(insCache.cats.map(c=>c.tot));rc.textContent=cxAll?`Category totals add up to ${money(cs)} for active orders. Subtracting ${money(-cxAll)} of cancelled orders gives ${money(netTot)}, the Total Est. Tax Value shown at the top.`:`Category totals add up to ${money(cs)}, the Total Est. Tax Value shown at the top.`;}}
   limState=computeLimit(active,cancelled);renderLimit();
   volState=computeVolume(active);renderVolume();
   renderTax();
