@@ -443,7 +443,7 @@ th.s.desc::after{content:" \25BC";opacity:1}
 
   <div class="grid2">
     <div class="card"><h2>Orders per Week</h2><p class="note">Weeks start Monday.</p><div class="chart" id="chWeek"></div></div>
-    <div class="card"><h2>Days from Order to Ship</h2><p class="note" id="shipNote"></p><div class="chart" id="chShip"></div></div>
+    <div class="card"><h2>Days from Order to Ship</h2><p class="note" id="shipNote"></p><div class="seg" id="shipMode" role="group" aria-label="Count days as"><button type="button" data-m="cal" aria-pressed="true">Calendar Days</button><button type="button" data-m="biz" aria-pressed="false">Business Days</button></div><div class="chart" id="chShip"></div></div>
   </div>
 
   <div class="grid2">
@@ -936,6 +936,8 @@ function stats(list){
 function monthKey(ms){const d=new Date(ms);return d.getUTCFullYear()*100+d.getUTCMonth();}
 function monthLabel(k){return MON[k%100]+' '+Math.floor(k/100);}
 function weekStart(ms){const d=new Date(ms);const dow=(d.getUTCDay()+6)%7;return ms-dow*DAY;}
+let shipMode='cal';try{if(localStorage.getItem('vine-shipmode')==='biz')shipMode='biz';}catch(e){}
+const bizDays=o=>{if(o.sd==null)return null;let n=0;for(let t=o.od+DAY;t<=o.sd;t+=DAY){const d=new Date(t).getUTCDay();if(d!==0&&d!==6)n++;}return n;};
 const shipDays = o=>o.sd!=null?Math.round((o.sd-o.od)/DAY):null;
 
 const MONTHS_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1024,7 +1026,7 @@ function insights(active,days){
   active.forEach(o=>{if(!cw.has(o.cat))cw.set(o.cat,{c:o.cat,tot:0,n:0,byW:Array(7).fill(0),nW:Array(7).fill(0)});
     const c=cw.get(o.cat),w=wd(o.od);c.tot+=o.etv;c.n++;c.byW[w]+=o.etv;c.nW[w]++;});
   const cats=[...cw.values()].sort((a,b)=>b.tot-a.tot);
-  const bestW=c=>{let b=0,bv=-1;for(let w=0;w<7;w++){const v=occ[w]?c.byW[w]/occ[w]:0;if(v>bv){bv=v;b=w;}}return b;};
+  const bestW=c=>{let b=0,bv=-1;for(let w=0;w<7;w++){const v=c.byW[w];if(v>bv){bv=v;b=w;}}return b;};
   const conf=(n,share)=>(n>=4&&share>=.3)?'<span class="badge ok">Medium</span>':'<span class="badge low">Low</span>';
   $('#catTable').innerHTML='<tr>'+sth('Category','str')+sth('Orders')+sth('Total Value')+sth('Avg / Item')+sth('% of Value')+sth('Best Day')+sth('Evidence'+info('Evidence'),'num',true)+sth('Confidence'+info('Confidence'))+'</tr>'
     +cats.map(c=>{const bw=bestW(c),share=c.tot?c.byW[bw]/c.tot:0,med=(c.nW[bw]>=4&&share>=.3)?1:0;
@@ -1780,15 +1782,15 @@ function drawCatChart(){
   const gridV=catView==='grid';
   $('#catView').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===catView)));
   $('#catSM').hidden=!gridV;$('#catCmp').hidden=gridV;
-  $('#catNote').textContent=gridV?'Each box is one category. The tall colored bar is its best day of the week, and a bar\'s height is the average value per order day, so a day of the week that occurs more often does not look better. Each box has its own scale, so small categories are as easy to read as large ones. Hover a bar for exact numbers.':'Each shaded area is one category, drawn across the week so overlapping areas show where categories peak together. Values are averaged per day of the week, and each dot marks a category\'s best day (the day label appears once above the highest dot). Click a category name to add or remove it. Start with two or three to keep it readable.';
+  $('#catNote').textContent=gridV?'Each box is one category. The tall colored bar is its best day of the week. Bar heights are total estimated tax value, so the seven bars add up to the category total shown in the box. Each box has its own scale, so small categories are as easy to read as large ones. Hover a bar for exact numbers.':'Each shaded area is one category, drawn across the week so overlapping areas show where categories peak together. Values are averaged per day of the week, and each dot marks the highest point of a line. Click a category name to add or remove it. Start with two or three to keep it readable.';
   if(gridV){
     const slot0=catSlots(insCache.cats),occ0=insCache.occ||Array(7).fill(1);
     const list=insCache.cats.slice().sort((a,b)=>a.c==='Other'?1:b.c==='Other'?-1:b.tot-a.tot);
     $('#catSM').innerHTML=list.map(c=>{
-      const av=DOW.map((_,w)=>occ0[w]?c.byW[w]/occ0[w]:0),mx=Math.max(...av,.0001);let bw=0;av.forEach((v,w)=>{if(v>av[bw])bw=w;});
-      const col=`var(--c${slot0.get(c.c)})`,bars=av.map((v,w)=>{const x=10+w*29.4,h=Math.max(v?2:0,60*v/mx),y=88-h,isB=w===bw&&v>0,tp=`<b>${esc(c.c)} · ${FULL[w]}</b>${money(v)} average per ${FULL[w]}<br>${c.nW[w]} order${c.nW[w]===1?'':'s'} · ${money(c.byW[w])} total`;
+      const av=DOW.map((_,w)=>c.byW[w]),mx=Math.max(...av,.0001);let bw=0;av.forEach((v,w)=>{if(v>av[bw])bw=w;});
+      const col=`var(--c${slot0.get(c.c)})`,bars=av.map((v,w)=>{const x=10+w*29.4,h=Math.max(v?2:0,60*v/mx),y=88-h,isB=w===bw&&v>0,tp=`<b>${esc(c.c)} · ${FULL[w]}</b>${money(v)} total<br>${c.nW[w]} order${c.nW[w]===1?'':'s'}${occ0[w]?` · ${money(v/occ0[w])} avg per ${FULL[w]}`:''}`;
         return `<g data-tip="${esc(tp)}"><rect x="${x-3}" y="8" width="26" height="96" fill="transparent"/><rect x="${x}" y="${y}" width="20" height="${h}" rx="3" fill="${col}" fill-opacity="${isB?1:.32}"/>${isB?`<text class="best" x="${x+10}" y="${y-4}" text-anchor="middle">${money0(v)}</text>`:''}<text class="${w===bw?'best':''}" x="${x+10}" y="102" text-anchor="middle">${DOW[w]}</text></g>`;}).join('');
-      return `<div class="sm"><h4 style="--c:${col}"><i></i>${esc(c.c)}</h4><p>Best day: <b style="color:var(--text)">${FULL[bw]}</b> · ${c.n} order${c.n===1?'':'s'}</p><svg viewBox="0 0 220 108" role="img" aria-label="${esc(c.c)}: average value by day of the week, best day ${FULL[bw]}"><line x1="6" x2="214" y1="88" y2="88" stroke="var(--line)"/>${bars}</svg></div>`;}).join('');
+      return `<div class="sm"><h4 style="--c:${col}"><i></i>${esc(c.c)}</h4><p>Best day: <b style="color:var(--text)">${FULL[bw]}</b></p><p>${c.n} order${c.n===1?'':'s'} · ${money0(c.tot)} total</p><svg viewBox="0 0 220 108" role="img" aria-label="${esc(c.c)}: average value by day of the week, best day ${FULL[bw]}"><line x1="6" x2="214" y1="88" y2="88" stroke="var(--line)"/>${bars}</svg></div>`;}).join('');
     return;
   }
   const all=insCache.cats.slice().sort((a,b)=>a.c==='Other'?1:b.c==='Other'?-1:a.c.localeCompare(b.c));
@@ -1869,6 +1871,11 @@ try{const m=localStorage.getItem('vine-monthmetric');if(m==='value')monthMetric=
 $('#monthMetric').addEventListener('click',e=>{
   const b=e.target.closest('button[data-m]');if(!b||b.dataset.m===monthMetric)return;
   monthMetric=b.dataset.m;try{localStorage.setItem('vine-monthmetric',monthMetric);}catch(_){}
+  if(window.__redraw)window.__redraw();
+});
+$('#shipMode').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-m]');if(!b||b.dataset.m===shipMode)return;
+  shipMode=b.dataset.m;try{localStorage.setItem('vine-shipmode',shipMode);}catch(_){}
   if(window.__redraw)window.__redraw();
 });
 $('#btnCustomize').onclick=()=>{
@@ -2059,8 +2066,11 @@ function render(){
     const wk=new Map();active.forEach(o=>{const k=weekStart(o.od);wk.set(k,(wk.get(k)||[]).concat(o));});
     const wkeys=[...wk.keys()].sort((a,b)=>a-b),wmax=Math.max(...wkeys.map(k=>wk.get(k).length));
     barChart($('#chWeek'),wkeys.map(k=>{const l=wk.get(k),s=stats(l);const d=new Date(k);return{label:`${MON[d.getUTCMonth()]} ${d.getUTCDate()}${ins.multi?" '"+String(d.getUTCFullYear()).slice(2):''}`,value:l.length,highlight:l.length===wmax&&wkeys.length>1,tip:`<b>Week of ${fmtDate(k)}</b>${l.length} orders<br>${money(s.etv)} est. tax value`}}),{aria:'Orders per week',labelW:ins.multi?66:52});
-    const bk=[['Same Day',x=>x===0],['1-2 Days',x=>x>=1&&x<=2],['3-5 Days',x=>x>=3&&x<=5],['6-10 Days',x=>x>=6&&x<=10],['11-15 Days',x=>x>=11&&x<=15],['16-29 Days',x=>x>=16&&x<=29],['30+ Days',x=>x>=30]];
-    barChart($('#chShip'),bk.map(b=>{const c=ships.filter(b[1]).length;return{label:b[0],value:c,tip:`<b>${b[0]}</b>${c} orders (${pct(c/(ships.length||1))})`}}),{aria:'Days from order to ship'});
+    const biz=shipMode==='biz',shipsV=biz?active.map(bizDays).filter(x=>x!=null):ships;
+    $('#shipMode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===shipMode)));
+    const bk=[['Same Day',x=>x===0],['1 Day',x=>x===1],['2 Days',x=>x===2],['3-5 Days',x=>x>=3&&x<=5],['6-10 Days',x=>x>=6&&x<=10],['11-29 Days',x=>x>=11&&x<=29],['30+ Days',x=>x>=30]];
+    barChart($('#chShip'),bk.map(b=>{const c=shipsV.filter(b[1]).length;return{label:b[0],value:c,tip:`<b>${b[0]}</b>${c} orders (${pct(c/(shipsV.length||1))})`}}),{aria:'Days from order to ship, '+(biz?'business days':'calendar days')});
+    {const sv=shipsV,u=biz?'business days':'days';$('#shipNote').textContent=sv.length?`Median ${median(sv)} ${u} · slowest ${Math.max(...sv)} ${u} · ${pct(sv.filter(x=>x<=2).length/sv.length)} ship within 2 ${u}.`+(biz?' Weekends are skipped; holidays are not.':''):'No ship dates.';}
     const dw=DOW.map((n,i)=>{const l=active.filter(o=>((new Date(o.od).getUTCDay()+6)%7)===i);return{label:n,value:l.length,tip:`<b>${n}</b>${l.length} orders<br>${money(sum(l.map(o=>o.etv)))} est. tax value`}});
     const dmax=Math.max(...dw.map(d=>d.value));dw.forEach(d=>d.highlight=d.value===dmax&&dmax>0);
     barChart($('#chDow'),dw,{aria:'Orders by day of the week'});
@@ -2072,7 +2082,6 @@ function render(){
     taxChart();
   };
   drawCharts(); window.__redraw=drawCharts;
-  $('#shipNote').textContent=ships.length?`Median ${median(ships)} days · slowest ${Math.max(...ships)} days · ${pct(ships.filter(x=>x<=2).length/ships.length)} ship within 2 days.`:'No ship dates.';
 
   const bestMonth=mkeys.map(k=>[k,stats(mm.get(k))]).sort((a,b)=>b[1].n-a[1].n)[0];
   const byDow=DOW.map((n,i)=>[n,active.filter(o=>((new Date(o.od).getUTCDay()+6)%7)===i).length]).sort((a,b)=>b[1]-a[1])[0];
