@@ -5,7 +5,7 @@ A browser-based dashboard for Amazon Vine itemized reports. Track orders, shipme
 ## Getting Started
 
 1. Download `index.html` and open it in your browser. No installation or build step is required.
-2. Select or drag in one or more Vine itemized reports. The dashboard accepts `.xlsx`, `.xls`, and `.csv` files.
+2. Select or drag in one or more Vine itemized reports. The dashboard accepts `.xlsx`, `.xls`, `.csv`, and `.pdf` files. PDF reports must be the text based itemized report downloaded from Amazon, not a scan or photo.
 3. Use the filters to explore your orders. In **All Orders**, select **Export CSV** to save the rows currently shown.
 
 ## Features
@@ -35,8 +35,8 @@ Amazon, Amazon Vine, and related names and colors are trademarks of Amazon.com, 
 
 ## Third-Party Software
 
-Includes [SheetJS Community Edition](https://sheetjs.com/) (Apache License 2.0) to read spreadsheet files. Its copyright notice is kept at the top of the bundled library in `index.html`.
+Includes [SheetJS Community Edition](https://sheetjs.com/) (Apache License 2.0) to read spreadsheet files and [PDF.js](https://mozilla.github.io/pdf.js/) by Mozilla (Apache License 2.0) to read PDF files. Their copyright notices are kept at the top of the bundled libraries in `index.html`.
 
 ## License
 
-Free to use, share, and copy. See the `LICENSE` file for terms.
+Free for personal and other non-commercial use, under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). You may use, share, and copy it, but you may not sell it, resell it, or include it in a paid product or service. See the `LICENSE` file for the full terms.
